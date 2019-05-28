@@ -1,8 +1,8 @@
 package controller
 
 import (
-	m "Gin_book/model"
-	"Gin_book/util"
+	m "Gin_blog/model"
+	"Gin_blog/util"
 	"fmt"
 	g "github.com/gin-gonic/gin"
 	"net/http"

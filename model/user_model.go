@@ -1,7 +1,7 @@
 package model
 
 import (
-	"Gin_book/database"
+	"Gin_blog/database"
 )
 
 //注册用户 结构

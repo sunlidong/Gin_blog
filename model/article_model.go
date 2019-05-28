@@ -1,8 +1,8 @@
 package model
 
 import (
-	cf "Gin_book/conf"
-	"Gin_book/database"
+	cf "Gin_blog/conf"
+	"Gin_blog/database"
 	"fmt"
 	"log"
 	"strconv"

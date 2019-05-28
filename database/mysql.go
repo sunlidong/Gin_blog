@@ -1,6 +1,7 @@
 package database
 
 import (
+	"Gin_blog/conf"
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
@@ -13,7 +14,9 @@ var db *sql.DB
 func InitMysql() {
 	fmt.Println("InitMysql....")
 	if db == nil {
-		db, _ = sql.Open("mysql", "root:1234567@tcp(127.0.0.1:3306)/kalablock?charset=utf8")
+		db, _ = sql.Open(
+			conf.DriverName,
+			"root:1234567@tcp(127.0.0.1:3306)/kalablock?charset=utf8")
 		fmt.Println("db is ok")
 		//CreateTableWithUser()
 		CreateTableWithArticle()

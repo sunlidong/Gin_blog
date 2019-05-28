@@ -9,7 +9,6 @@ const (
 )
 
 //base
-
 const (
 	//
 	Filepath = "C:/Users/sld/go/src/Gin_book/"
@@ -21,7 +20,11 @@ const (
 // init sql
 
 const (
-	DriverName = "sql"
-
-	sql
+	DriverName   = "sql"
+	SqlLoginName = "root"
+	SqlLoginPass = "1234567"
+	SqlUrl       = "127.0.0.1"
+	SqlPort      = "3306"
+	SqlDB        = "kalablock"
+	SqlUnit      = "utf8"
 )

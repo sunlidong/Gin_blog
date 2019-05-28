@@ -1,8 +1,8 @@
 package router
 
 import (
-	cf "Gin_book/conf"
-	ctl "Gin_book/controller"
+	cf "Gin_blog/conf"
+	ctl "Gin_blog/controller"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
