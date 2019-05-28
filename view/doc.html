@@ -1,0 +1,1102 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>第二节 · 2222222222222222 · 看云</title>
+    <meta name="description"
+          content="232323"/>
+    <meta name="keywords"
+          content="文档托管,在线创作,文档在线管理,在线知识管理,文档托管平台,在线写书,文档在线转换,在线编辑,在线阅读,开发手册,api手册,文档在线学习,技术文档在线阅读,在线文档编辑"/>
+    <meta name="viewport"
+          content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no"
+          data-react-helmet="true" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="robots" content="noindex,nofollow,noarchive" />
+    <style data-react-helmet="true">
+        .dimmer {
+            box-sizing: content-box;
+            display: flex;
+            position: absolute;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            vertical-align: middle;
+            padding: 0;
+            background-color: #FFFFFF;
+            opacity: 1;
+            line-height: 1;
+            animation-fill-mode: both;
+            animation-duration: .5s;
+            transition: background-color .5s linear;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            will-change: opacity;
+            z-index: 1000;
+        }
+
+        .loader {
+            box-sizing: content-box;
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin: 0;
+            text-align: center;
+            z-index: 1000;
+            -webkit-transform: translateX(-50%) translateY(-50%);
+            transform: translateX(-50%) translateY(-50%);
+        }
+
+        .loader:before {
+            position: absolute;
+            content: '';
+            top: 0;
+            left: 50%;
+            width: 50px;
+            height: 50px;
+            margin: 0 0 0 -25px;
+            border-radius: 50px;
+            border: 4px solid rgba(0, 0, 0, .1);
+        }
+
+        .loader:after {
+            position: absolute;
+            content: '';
+            top: 0;
+            left: 50%;
+            width:  50px;
+            height:  50px;
+            margin: 0 0 0 -25px;
+            animation: loader .6s linear;
+            animation-iteration-count: infinite;
+            border-radius:  50px;
+            border: 4px solid transparent;
+            border-top-color: #767676;
+            box-shadow: 0 0 0 1px transparent;
+        }
+
+        @keyframes loader {
+            from {
+                -webkit-transform: rotate(0deg);
+                transform: rotate(0deg);
+            }
+            to {
+                -webkit-transform: rotate(360deg);
+                transform: rotate(360deg);
+            }
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #main {
+            display: block !important;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+<div id="main">
+    <div class="seo">
+        <div class="content">
+            包trie 实现了Merkle Patricia Tries，这里用简称MPT来称呼这种数据结构，这种数据结构实际上是一种Trie树变种，MPT是以太坊中一种非常重要的数据结构，用来存储用户账户的状态以及状态的变更，用来存储交易信息，用来存储交易的收据信息。MPT实际上是三种数据结构的组合，分别是Trie树， Patricia Trie， 和Merkle树。下面分别介绍这三种数据结构。
+
+            ## Trie树 (引用介绍 http://dongxicheng.org/structure/trietree/)
+            Trie树，又称字典树，单词查找树或者前缀树，是一种用于快速检索的多叉树结构，如英文字母的字典树是一个26叉树，数字的字典树是一个10叉树。
+
+            Trie树可以利用字符串的公共前缀来节约存储空间。如下图所示，该trie树用10个节点保存了6个字符串tea，ten，to，in，inn，int：
+
+
+            在该trie树中，字符串in，inn和int的公共前缀是“in”，因此可以只存储一份“in”以节省空间。当然，如果系统中存在大量字符串且这些字符串基本没有公共前缀，则相应的trie树将非常消耗内存，这也是trie树的一个缺点。
+
+            Trie树的基本性质可以归纳为：
+
+            - 根节点不包含字符，除根节点意外每个节点只包含一个字符。
+            - 从根节点到某一个节点，路径上经过的字符连接起来，为该节点对应的字符串。
+            - 每个节点的所有子节点包含的字符串不相同。
+
+            ## Patricia Tries (前缀树)
+            前缀树根Trie树的不同之处在于Trie树给每一个字符串分配一个节点，这样如果很多很长的，又没有公共节点的字符串就会导致Trie树退化成一个数组。在以太坊里面会由黑客构造很多这种节点造成拒绝服务攻击。前缀树的不同之处在于如果节点公共前缀，那么就使用公共前缀，否则就把剩下的所有节点插入同一个节点。Patricia相对Tire的优化正如下图：
+
+
+            上图存储的8个Key Value对，可以看到前缀树的特点。
+
+            |Key           | value |
+            | ------------- | ---: |
+            |6c0a5c71ec20bq3w|5     |
+            |6c0a5c71ec20CX7j|27    |
+            |6c0a5c71781a1FXq|18    |
+            |6c0a5c71781a9Dog|64    |
+            |6c0a8f743b95zUfe|30    |
+            |6c0a8f743b95jx5R|2     |
+            |6c0a8f740d16y03G|43    |
+            |6c0a8f740d16vcc1|48    |
+
+            ## Merkle树 (参考 http://blog.csdn.net/wo541075754/article/details/54632929）
+            Merkle Tree，通常也被称作Hash Tree，顾名思义，就是存储hash值的一棵树。Merkle树的叶子是数据块(例如，文件或者文件的集合)的hash值。非叶节点是其对应子节点串联字符串的hash。
+
+            ![image](picture/trie_3.png)
+
+            Merkle Tree的主要作用是当我拿到Top Hash的时候，这个hash值代表了整颗树的信息摘要，当树里面任何一个数据发生了变动，都会导致Top Hash的值发生变化。 而Top Hash的值是会存储到区块链的区块头里面去的， 区块头是必须经过工作量证明。 这也就是说我只要拿到一个区块头，就可以对区块信息进行验证。 更加详细的信息请参考那个博客。有详细的介绍。
+
+
+            ## 以太坊的MPT
+            每一个以太坊的区块头包含三颗MPT树，分别是
+
+            - 交易树
+            - 收据树(交易执行过程中的一些数据)
+            - 状态树(账号信息， 合约账户和用户账户)
+
+            下图中是两个区块头，其中state root，tx root receipt root分别存储了这三棵树的树根，第二个区块显示了当账号 175的数据变更(27 -&gt; 45)的时候，只需要存储跟这个账号相关的部分数据，而且老的区块中的数据还是可以正常访问。(这个有点类似与函数式编程语言中的不可变的数据结构的实现)
+            ![image](picture/trie_4.png)
+            详细结构为
+            ![world state trie](picture/worldstatetrie.png)
+
+            ## 黄皮书形式化定义(Appendix D. Modified Merkle Patricia Tree)
+
+            正式地，我们假设输入值J，包含Key Value对的集合（Key Value都是字节数组）：
+
+
+            当处理这样一个集合的时候，我们使用下面的这样标识表示数据的 Key和Value(对于J集合中的任意一个I， I0表示Key， I1表示Value)
+
+
+            对于任何特定的字节，我们可以表示为对应的半字节（nibble），其中Y集合在Hex-Prefix Encoding中有说明，意为半字节（4bit）集合（之所以采用半字节，其与后续说明的分支节点branch node结构以及key中编码flag有关）
+
+
+
+            我们定义了TRIE函数，用来表示树根的HASH值（其中c函数的第二个参数，意为构建完成后树的层数。root的值为0）
+
+
+
+            我们还定义一个函数n，这个trie的节点函数。 当组成节点时，我们使用RLP对结构进行编码。 作为降低存储复杂度的手段，对于RLP少于32字节的节点，我们直接存储其RLP值， 对于那些较大的，我们存储其HASH节点。
+            我们用c来定义节点组成函数：
+
+
+
+            以类似于基数树的方式，当Trie树从根遍历到叶时，可以构建单个键值对。 Key通过遍历累积，从每个分支节点获取单个半字节（与基数树一样）。 与基数树不同，在共享相同前缀的多个Key的情况下，或者在具有唯一后缀的单个Key的情况下，提供两个优化节点。的情况下，或者在具有唯一后缀的单个密钥的情况下，提供两个优化节点。 因此，当遍历时，可能从其他两个节点类型，扩展和叶中的每一个潜在地获取多个半字节。在Trie树中有三种节点：
+
+            - **叶子节点(Leaf):** 叶子节点包含两个字段， 第一个字段是剩下的Key的半字节编码,而且半字节编码方法的第二个参数为true， 第二个字段是Value
+            - **扩展节点(Extention):** 扩展节点也包含两个字段， 第一个字段是剩下的Key的可以至少被两个剩下节点共享的部分的半字节编码，第二个字段是n(J,j)
+            - **分支节点(Branch):** 分支节点包含了17个字段，其前16个项目对应于这些点在其遍历中的键的十六个可能的半字节值中的每一个。第17个字段是存储那些在当前结点结束了的节点(例如， 有三个key,分别是 (abc ,abd, ab) 第17个字段储存了ab节点的值)
+
+            分支节点只有在需要的时候使用， 对于一个只有一个非空 key value对的Trie树，可能不存在分支节点。 如果使用公式来定义这三种节点， 那么公式如下：
+            图中的HP函数代表Hex-Prefix Encoding，是一种半字节编码格式，RLP是使用RLP进行序列化的函数。
+
+            ![image](picture/trie_10.png)
+
+            对于上图的三种情况的解释
+
+            - 如果当前需要编码的KV集合只剩下一条数据，那么这条数据按照第一条规则进行编码。
+            - 如果当前需要编码的KV集合有公共前缀，那么提取最大公共前缀并使用第二条规则进行处理。
+            - 如果不是上面两种情况，那么使用分支节点进行集合切分，因为key是使用HP进行编码的，所以可能的分支只有0-15这16个分支。可以看到u的值由n进行递归定义，而如果有节点刚好在这里完结了，那么第17个元素v就是为这种情况准备的。
+
+            对于数据应该如何存储和不应该如何存储， 黄皮书中说明没有显示的定义。所以这是一个实现上的问题。我们简单的定义了一个函数来把J映射为一个Hash。 我们认为对于任意一个J，只存在唯一一个Hash值。
+
+            ### 黄皮书的形式化定义(Hex-Prefix Encoding)--十六进制前缀编码
+            十六进制前缀编码是将任意数量的半字节编码为字节数组的有效方法。它能够存储附加标志，当在Trie树中使用时(唯一会使用的地方)，会在节点类型之间消除歧义。
+
+            它被定义为从一系列半字节（由集合Y表示）与布尔值一起映射到字节序列（由集合B表示）的函数HP：
+
+
+
+            因此，第一个字节的高半字节包含两个标志; 最低bit位编码了长度的奇偶位，第二低的bit位编码了flag的值。 在偶数个半字节的情况下，第一个字节的低半字节为零，在奇数的情况下为第一个半字节。 所有剩余的半字节（现在是偶数）适合其余的字节。
+
+            ## 源码实现
+            ### trie/encoding.go
+            encoding.go主要处理trie树中的三种编码格式的相互转换的工作。 三种编码格式分别为下面的三种编码格式。
+
+            - **KEYBYTES encoding**这种编码格式就是原生的key字节数组，大部分的Trie的API都是使用这边编码格式
+            - **HEX encoding** 这种编码格式每一个字节包含了Key的一个半字节，尾部接上一个可选的&#039;终结符&#039;,&#039;终结符&#039;代表这个节点到底是叶子节点还是扩展节点。当节点被加载到内存里面的时候使用的是这种节点，因为它的方便访问。
+            - **COMPACT encoding** 这种编码格式就是上面黄皮书里面说到的Hex-Prefix Encoding，这种编码格式可以看成是*HEX encoding**这种编码格式的另外一种版本，可以在存储到数据库的时候节约磁盘空间。
+
+            简单的理解为：将普通的字节序列keybytes编码为带有t标志与奇数个半字节nibble标志位的keybytes
+            - keybytes为按完整字节（8bit）存储的正常信息
+            - hex为按照半字节nibble（4bit）储存信息的格式。供compact使用
+            - 为了便于作黄皮书中Modified Merkle Patricia Tree的节点的key，编码为偶数字节长度的hex格式。其第一个半字节nibble会在低的2个bit位中，由高到低分别存放t标志与奇数标志。经compact编码的keybytes，在增加了hex的t标志与半字节nibble为偶数个（即完整的字节）的情况下，便于存储
+
+            代码实现，主要是实现了这三种编码的相互转换，以及一个求取公共前缀的方法。
+
+            func hexToCompact(hex []byte) []byte {
+            terminator := byte(0)
+            if hasTerm(hex) {
+            terminator = 1
+            hex = hex[:len(hex)-1]
+            }
+            buf := make([]byte, len(hex)/2+1)
+            buf[0] = terminator &lt;&lt; 5 // the flag byte
+            if len(hex)&amp;1 == 1 {
+            buf[0] |= 1 &lt;&lt; 4 // odd flag
+            buf[0] |= hex[0] // first nibble is contained in the first byte
+            hex = hex[1:]
+            }
+            decodeNibbles(hex, buf[1:])
+            return buf
+            }
+
+            func compactToHex(compact []byte) []byte {
+            base := keybytesToHex(compact)
+            base = base[:len(base)-1]
+            // apply terminator flag
+            if base[0] &gt;= 2 { // TODO 先将keybytesToHex输出的末尾结束标志删除后，再通过判断头半个字节的标志位t加回去。操作冗余
+            base = append(base, 16)
+            }
+            // apply odd flag
+            chop := 2 - base[0]&amp;1
+            return base[chop:]
+            }
+
+            func keybytesToHex(str []byte) []byte {
+            l := len(str)*2 + 1
+            var nibbles = make([]byte, l)
+            for i, b := range str {
+            nibbles[i*2] = b / 16
+            nibbles[i*2+1] = b % 16
+            }
+            nibbles[l-1] = 16
+            return nibbles
+            }
+
+            // hexToKeybytes turns hex nibbles into key bytes.
+            // This can only be used for keys of even length.
+            func hexToKeybytes(hex []byte) []byte {
+            if hasTerm(hex) {
+            hex = hex[:len(hex)-1]
+            }
+            if len(hex)&amp;1 != 0 {
+            panic(&quot;can&#039;t convert hex key of odd length&quot;)
+            }
+            key := make([]byte, (len(hex)+1)/2) // TODO 对于一个已经判断为偶数的len(hex)在整除2的同时加1，为无效的+1逻辑
+            decodeNibbles(hex, key)
+            return key
+            }
+
+            func decodeNibbles(nibbles []byte, bytes []byte) {
+            for bi, ni := 0, 0; ni &lt; len(nibbles); bi, ni = bi+1, ni+2 {
+            bytes[bi] = nibbles[ni]&lt;&lt;4 | nibbles[ni+1]
+            }
+            }
+
+            // prefixLen returns the length of the common prefix of a and b.
+            func prefixLen(a, b []byte) int {
+            var i, length = 0, len(a)
+            if len(b) &lt; length {
+            length = len(b)
+            }
+            for ; i &lt; length; i++ {
+            if a[i] != b[i] {
+            break
+            }
+            }
+            return i
+            }
+
+            // hasTerm returns whether a hex key has the terminator flag.
+            func hasTerm(s []byte) bool {
+            return len(s) &gt; 0 &amp;&amp; s[len(s)-1] == 16
+            }
+
+            ### 数据结构
+            node的结构，可以看到node分为4种类型， fullNode对应了黄皮书里面的分支节点，shortNode对应了黄皮书里面的扩展节点和叶子节点(通过shortNode.Val的类型来对应到底是叶子节点(valueNode)还是分支节点(fullNode))
+
+            type node interface {
+            fstring(string) string
+            cache() (hashNode, bool)
+            canUnload(cachegen, cachelimit uint16) bool
+            }
+
+            type (
+            fullNode struct {
+            Children [17]node // Actual trie node data to encode/decode (needs custom encoder)
+            flags    nodeFlag
+            }
+            shortNode struct {
+            Key   []byte
+            Val   node
+            flags nodeFlag
+            }
+            hashNode  []byte
+            valueNode []byte
+            )
+
+            trie的结构， root包含了当前的root节点， db是后端的KV存储，trie的结构最终都是需要通过KV的形式存储到数据库里面去，然后启动的时候是需要从数据库里面加载的。 originalRoot 启动加载的时候的hash值，通过这个hash值可以在数据库里面恢复出整颗的trie树。cachegen字段指示了当前Trie树的cache时代，每次调用Commit操作的时候，会增加Trie树的cache时代。 cache时代会被附加在node节点上面，如果当前的cache时代 - cachelimit参数 大于node的cache时代，那么node会从cache里面卸载，以便节约内存。 其实这就是缓存更新的LRU算法， 如果一个缓存在多久没有被使用，那么就从缓存里面移除，以节约内存空间。
+
+            // Trie is a Merkle Patricia Trie.
+            // The zero value is an empty trie with no database.
+            // Use New to create a trie that sits on top of a database.
+            //
+            // Trie is not safe for concurrent use.
+            type Trie struct {
+            root         node
+            db           Database
+            originalRoot common.Hash
+
+            // Cache generation values.
+            // cachegen increases by one with each commit operation.
+            // new nodes are tagged with the current generation and unloaded
+            // when their generation is older than than cachegen-cachelimit.
+            cachegen, cachelimit uint16
+            }
+
+
+            ###Trie树的插入，查找和删除
+            Trie树的初始化调用New函数，函数接受一个hash值和一个Database参数，如果hash值不是空值的化，就说明是从数据库加载一个已经存在的Trie树， 就调用trei.resolveHash方法来加载整颗Trie树，这个方法后续会介绍。 如果root是空，那么就新建一颗Trie树返回。
+
+            func New(root common.Hash, db Database) (*Trie, error) {
+            trie := &amp;Trie{db: db, originalRoot: root}
+            if (root != common.Hash{}) &amp;&amp; root != emptyRoot {
+            if db == nil {
+            panic(&quot;trie.New: cannot use existing root without a database&quot;)
+            }
+            rootnode, err := trie.resolveHash(root[:], nil)
+            if err != nil {
+            return nil, err
+            }
+            trie.root = rootnode
+            }
+            return trie, nil
+            }
+
+            Trie树的插入，这是一个递归调用的方法，从根节点开始，一直往下找，直到找到可以插入的点，进行插入操作。参数node是当前插入的节点， prefix是当前已经处理完的部分key， key是还没有处理玩的部分key,  完整的key = prefix + key。 value是需要插入的值。 返回值bool是操作是否改变了Trie树(dirty)，node是插入完成后的子树的根节点， error是错误信息。
+
+            - 如果节点类型是nil(一颗全新的Trie树的节点就是nil的),这个时候整颗树是空的，直接返回shortNode{key, value, t.newFlag()}， 这个时候整颗树的跟就含有了一个shortNode节点。
+            - 如果当前的根节点类型是shortNode(也就是叶子节点)，首先计算公共前缀，如果公共前缀就等于key，那么说明这两个key是一样的，如果value也一样的(dirty == false)，那么返回错误。 如果没有错误就更新shortNode的值然后返回。如果公共前缀不完全匹配，那么就需要把公共前缀提取出来形成一个独立的节点(扩展节点),扩展节点后面连接一个branch节点，branch节点后面看情况连接两个short节点。首先构建一个branch节点(branch := &amp;fullNode{flags: t.newFlag()}),然后再branch节点的Children位置调用t.insert插入剩下的两个short节点。这里有个小细节，key的编码是HEX encoding,而且末尾带了一个终结符。考虑我们的根节点的key是abc0x16，我们插入的节点的key是ab0x16。下面的branch.Children[key[matchlen]]才可以正常运行，0x16刚好指向了branch节点的第17个孩子。如果匹配的长度是0，那么直接返回这个branch节点，否则返回shortNode节点作为前缀节点。
+            - 如果当前的节点是fullNode(也就是branch节点)，那么直接往对应的孩子节点调用insert方法,然后把对应的孩子节点只想新生成的节点。
+            - 如果当前节点是hashNode, hashNode的意思是当前节点还没有加载到内存里面来，还是存放在数据库里面，那么首先调用 t.resolveHash(n, prefix)来加载到内存，然后对加载出来的节点调用insert方法来进行插入。
+
+
+            插入代码
+
+            func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {
+            if len(key) == 0 {
+            if v, ok := n.(valueNode); ok {
+            return !bytes.Equal(v, value.(valueNode)), value, nil
+            }
+            return true, value, nil
+            }
+            switch n := n.(type) {
+            case *shortNode:
+            matchlen := prefixLen(key, n.Key)
+            // If the whole key matches, keep this short node as is
+            // and only update the value.
+            if matchlen == len(n.Key) {
+            dirty, nn, err := t.insert(n.Val, append(prefix, key[:matchlen]...), key[matchlen:], value)
+            if !dirty || err != nil {
+            return false, n, err
+            }
+            return true, &amp;shortNode{n.Key, nn, t.newFlag()}, nil
+            }
+            // Otherwise branch out at the index where they differ.
+            branch := &amp;fullNode{flags: t.newFlag()}
+            var err error
+            _, branch.Children[n.Key[matchlen]], err = t.insert(nil, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)
+            if err != nil {
+            return false, nil, err
+            }
+            _, branch.Children[key[matchlen]], err = t.insert(nil, append(prefix, key[:matchlen+1]...), key[matchlen+1:], value)
+            if err != nil {
+            return false, nil, err
+            }
+            // Replace this shortNode with the branch if it occurs at index 0.
+            if matchlen == 0 {
+            return true, branch, nil
+            }
+            // Otherwise, replace it with a short node leading up to the branch.
+            return true, &amp;shortNode{key[:matchlen], branch, t.newFlag()}, nil
+
+            case *fullNode:
+            dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)
+            if !dirty || err != nil {
+            return false, n, err
+            }
+            n = n.copy()
+            n.flags = t.newFlag()
+            n.Children[key[0]] = nn
+            return true, n, nil
+
+            case nil:
+            return true, &amp;shortNode{key, value, t.newFlag()}, nil
+
+            case hashNode:
+            // We&#039;ve hit a part of the trie that isn&#039;t loaded yet. Load
+            // the node and insert into it. This leaves all child nodes on
+            // the path to the value in the trie.
+            rn, err := t.resolveHash(n, prefix)
+            if err != nil {
+            return false, nil, err
+            }
+            dirty, nn, err := t.insert(rn, prefix, key, value)
+            if !dirty || err != nil {
+            return false, rn, err
+            }
+            return true, nn, nil
+
+            default:
+            panic(fmt.Sprintf(&quot;%T: invalid node: %v&quot;, n, n))
+            }
+            }
+
+
+            Trie树的Get方法，基本上就是很简单的遍历Trie树，来获取Key的信息。
+
+
+            func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode node, didResolve bool, err error) {
+            switch n := (origNode).(type) {
+            case nil:
+            return nil, nil, false, nil
+            case valueNode:
+            return n, n, false, nil
+            case *shortNode:
+            if len(key)-pos &lt; len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {
+            // key not found in trie
+            return nil, n, false, nil
+            }
+            value, newnode, didResolve, err = t.tryGet(n.Val, key, pos+len(n.Key))
+            if err == nil &amp;&amp; didResolve {
+            n = n.copy()
+            n.Val = newnode
+            n.flags.gen = t.cachegen
+            }
+            return value, n, didResolve, err
+            case *fullNode:
+            value, newnode, didResolve, err = t.tryGet(n.Children[key[pos]], key, pos+1)
+            if err == nil &amp;&amp; didResolve {
+            n = n.copy()
+            n.flags.gen = t.cachegen
+            n.Children[key[pos]] = newnode
+            }
+            return value, n, didResolve, err
+            case hashNode:
+            child, err := t.resolveHash(n, key[:pos])
+            if err != nil {
+            return nil, n, true, err
+            }
+            value, newnode, _, err := t.tryGet(child, key, pos)
+            return value, newnode, true, err
+            default:
+            panic(fmt.Sprintf(&quot;%T: invalid node: %v&quot;, origNode, origNode))
+            }
+            }
+
+            Trie树的Delete方法，暂时不介绍，代码根插入比较类似
+
+            ### Trie树的序列化和反序列化
+            序列化主要是指把内存表示的数据存放到数据库里面， 反序列化是指把数据库里面的Trie数据加载成内存表示的数据。 序列化的目的主要是方便存储，减少存储大小等。 反序列化的目的是把存储的数据加载到内存，方便Trie树的插入，查询，修改等需求。
+
+            Trie的序列化主要才作用了前面介绍的Compat Encoding和 RLP编码格式。 序列化的结构在黄皮书里面有详细的介绍。
+
+            ![image](picture/trie_8.png)
+            ![image](picture/trie_9.png)
+            ![image](picture/trie_10.png)
+
+            Trie树的使用方法在trie_test.go里面有比较详细的参考。 这里我列出一个简单的使用流程。首先创建一个空的Trie树，然后插入一些数据，最后调用trie.Commit()方法进行序列化并得到一个hash值(root), 也就是上图中的KEC(c(J,0))或者是TRIE(J)。
+
+            func TestInsert(t *testing.T) {
+            trie := newEmpty()
+            updateString(trie, &quot;doe&quot;, &quot;reindeer&quot;)
+            updateString(trie, &quot;dog&quot;, &quot;puppy&quot;)
+            updateString(trie, &quot;do&quot;, &quot;cat&quot;)
+            root, err := trie.Commit()
+            }
+
+            下面我们来分析下Commit()的主要流程。 经过一系列的调用，最终调用了hasher.go的hash方法。
+
+            func (t *Trie) Commit() (root common.Hash, err error) {
+            if t.db == nil {
+            panic(&quot;Commit called on trie with nil database&quot;)
+            }
+            return t.CommitTo(t.db)
+            }
+            // CommitTo writes all nodes to the given database.
+            // Nodes are stored with their sha3 hash as the key.
+            //
+            // Committing flushes nodes from memory. Subsequent Get calls will
+            // load nodes from the trie&#039;s database. Calling code must ensure that
+            // the changes made to db are written back to the trie&#039;s attached
+            // database before using the trie.
+            func (t *Trie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {
+            hash, cached, err := t.hashRoot(db)
+            if err != nil {
+            return (common.Hash{}), err
+            }
+            t.root = cached
+            t.cachegen++
+            return common.BytesToHash(hash.(hashNode)), nil
+            }
+
+            func (t *Trie) hashRoot(db DatabaseWriter) (node, node, error) {
+            if t.root == nil {
+            return hashNode(emptyRoot.Bytes()), nil, nil
+            }
+            h := newHasher(t.cachegen, t.cachelimit)
+            defer returnHasherToPool(h)
+            return h.hash(t.root, db, true)
+            }
+
+
+            下面我们简单介绍下hash方法，hash方法主要做了两个操作。 一个是保留原有的树形结构，并用cache变量中， 另一个是计算原有树形结构的hash并把hash值存放到cache变量中保存下来。
+
+            计算原有hash值的主要流程是首先调用h.hashChildren(n,db)把所有的子节点的hash值求出来，把原有的子节点替换成子节点的hash值。 这是一个递归调用的过程，会从树叶依次往上计算直到树根。然后调用store方法计算当前节点的hash值，并把当前节点的hash值放入cache节点，设置dirty参数为false(新创建的节点的dirty值是为true的)，然后返回。
+
+            返回值说明， cache变量包含了原有的node节点，并且包含了node节点的hash值。 hash变量返回了当前节点的hash值(这个值其实是根据node和node的所有子节点计算出来的)。
+
+            有一个小细节： 根节点调用hash函数的时候， force参数是为true的，其他的子节点调用的时候force参数是为false的。 force参数的用途是当||c(J,i)||&lt;32的时候也对c(J,i)进行hash计算，这样保证无论如何也会对根节点进行Hash计算。
+
+            // hash collapses a node down into a hash node, also returning a copy of the
+            // original node initialized with the computed hash to replace the original one.
+            func (h *hasher) hash(n node, db DatabaseWriter, force bool) (node, node, error) {
+            // If we&#039;re not storing the node, just hashing, use available cached data
+            if hash, dirty := n.cache(); hash != nil {
+            if db == nil {
+            return hash, n, nil
+            }
+            if n.canUnload(h.cachegen, h.cachelimit) {
+            // Unload the node from cache. All of its subnodes will have a lower or equal
+            // cache generation number.
+            cacheUnloadCounter.Inc(1)
+            return hash, hash, nil
+            }
+            if !dirty {
+            return hash, n, nil
+            }
+            }
+            // Trie not processed yet or needs storage, walk the children
+            collapsed, cached, err := h.hashChildren(n, db)
+            if err != nil {
+            return hashNode{}, n, err
+            }
+            hashed, err := h.store(collapsed, db, force)
+            if err != nil {
+            return hashNode{}, n, err
+            }
+            // Cache the hash of the node for later reuse and remove
+            // the dirty flag in commit mode. It&#039;s fine to assign these values directly
+            // without copying the node first because hashChildren copies it.
+            cachedHash, _ := hashed.(hashNode)
+            switch cn := cached.(type) {
+            case *shortNode:
+            cn.flags.hash = cachedHash
+            if db != nil {
+            cn.flags.dirty = false
+            }
+            case *fullNode:
+            cn.flags.hash = cachedHash
+            if db != nil {
+            cn.flags.dirty = false
+            }
+            }
+            return hashed, cached, nil
+            }
+
+            hashChildren方法,这个方法把所有的子节点替换成他们的hash，可以看到cache变量接管了原来的Trie树的完整结构，collapsed变量把子节点替换成子节点的hash值。
+
+            - 如果当前节点是shortNode, 首先把collapsed.Key从Hex Encoding 替换成 Compact Encoding, 然后递归调用hash方法计算子节点的hash和cache，这样就把子节点替换成了子节点的hash值，
+            - 如果当前节点是fullNode, 那么遍历每个子节点，把子节点替换成子节点的Hash值，
+            - 否则的化这个节点没有children。直接返回。
+
+            代码
+
+            // hashChildren replaces the children of a node with their hashes if the encoded
+            // size of the child is larger than a hash, returning the collapsed node as well
+            // as a replacement for the original node with the child hashes cached in.
+            func (h *hasher) hashChildren(original node, db DatabaseWriter) (node, node, error) {
+            var err error
+
+            switch n := original.(type) {
+            case *shortNode:
+            // Hash the short node&#039;s child, caching the newly hashed subtree
+            collapsed, cached := n.copy(), n.copy()
+            collapsed.Key = hexToCompact(n.Key)
+            cached.Key = common.CopyBytes(n.Key)
+
+            if _, ok := n.Val.(valueNode); !ok {
+            collapsed.Val, cached.Val, err = h.hash(n.Val, db, false)
+            if err != nil {
+            return original, original, err
+            }
+            }
+            if collapsed.Val == nil {
+            collapsed.Val = valueNode(nil) // Ensure that nil children are encoded as empty strings.
+            }
+            return collapsed, cached, nil
+
+            case *fullNode:
+            // Hash the full node&#039;s children, caching the newly hashed subtrees
+            collapsed, cached := n.copy(), n.copy()
+
+            for i := 0; i &lt; 16; i++ {
+            if n.Children[i] != nil {
+            collapsed.Children[i], cached.Children[i], err = h.hash(n.Children[i], db, false)
+            if err != nil {
+            return original, original, err
+            }
+            } else {
+            collapsed.Children[i] = valueNode(nil) // Ensure that nil children are encoded as empty strings.
+            }
+            }
+            cached.Children[16] = n.Children[16]
+            if collapsed.Children[16] == nil {
+            collapsed.Children[16] = valueNode(nil)
+            }
+            return collapsed, cached, nil
+
+            default:
+            // Value and hash nodes don&#039;t have children so they&#039;re left as were
+            return n, original, nil
+            }
+            }
+
+
+            store方法，如果一个node的所有子节点都替换成了子节点的hash值，那么直接调用rlp.Encode方法对这个节点进行编码，如果编码后的值小于32，并且这个节点不是根节点，那么就把他们直接存储在他们的父节点里面，否者调用h.sha.Write方法进行hash计算， 然后把hash值和编码后的数据存储到数据库里面，然后返回hash值。
+
+            可以看到每个值大于32的节点的值和hash都存储到了数据库里面，
+
+            func (h *hasher) store(n node, db DatabaseWriter, force bool) (node, error) {
+            // Don&#039;t store hashes or empty nodes.
+            if _, isHash := n.(hashNode); n == nil || isHash {
+            return n, nil
+            }
+            // Generate the RLP encoding of the node
+            h.tmp.Reset()
+            if err := rlp.Encode(h.tmp, n); err != nil {
+            panic(&quot;encode error: &quot; + err.Error())
+            }
+
+            if h.tmp.Len() &lt; 32 &amp;&amp; !force {
+            return n, nil // Nodes smaller than 32 bytes are stored inside their parent
+            }
+            // Larger nodes are replaced by their hash and stored in the database.
+            hash, _ := n.cache()
+            if hash == nil {
+            h.sha.Reset()
+            h.sha.Write(h.tmp.Bytes())
+            hash = hashNode(h.sha.Sum(nil))
+            }
+            if db != nil {
+            return hash, db.Put(hash, h.tmp.Bytes())
+            }
+            return hash, nil
+            }
+
+
+            Trie的反序列化过程。还记得之前创建Trie树的流程么。 如果参数root的hash值不为空，那么就会调用rootnode, err := trie.resolveHash(root[:], nil) 方法来得到rootnode节点。 首先从数据库里面通过hash值获取节点的RLP编码后的内容。 然后调用decodeNode来解析内容。
+
+            func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {
+            cacheMissCounter.Inc(1)
+
+            enc, err := t.db.Get(n)
+            if err != nil || enc == nil {
+            return nil, &amp;MissingNodeError{NodeHash: common.BytesToHash(n), Path: prefix}
+            }
+            dec := mustDecodeNode(n, enc, t.cachegen)
+            return dec, nil
+            }
+            func mustDecodeNode(hash, buf []byte, cachegen uint16) node {
+            n, err := decodeNode(hash, buf, cachegen)
+            if err != nil {
+            panic(fmt.Sprintf(&quot;node %x: %v&quot;, hash, err))
+            }
+            return n
+            }
+
+            decodeNode方法，这个方法根据rlp的list的长度来判断这个编码到底属于什么节点，如果是2个字段那么就是shortNode节点，如果是17个字段，那么就是fullNode，然后分别调用各自的解析函数。
+
+            // decodeNode parses the RLP encoding of a trie node.
+            func decodeNode(hash, buf []byte, cachegen uint16) (node, error) {
+            if len(buf) == 0 {
+            return nil, io.ErrUnexpectedEOF
+            }
+            elems, _, err := rlp.SplitList(buf)
+            if err != nil {
+            return nil, fmt.Errorf(&quot;decode error: %v&quot;, err)
+            }
+            switch c, _ := rlp.CountValues(elems); c {
+            case 2:
+            n, err := decodeShort(hash, buf, elems, cachegen)
+            return n, wrapError(err, &quot;short&quot;)
+            case 17:
+            n, err := decodeFull(hash, buf, elems, cachegen)
+            return n, wrapError(err, &quot;full&quot;)
+            default:
+            return nil, fmt.Errorf(&quot;invalid number of list elements: %v&quot;, c)
+            }
+            }
+
+            decodeShort方法，通过key是否有终结符号来判断到底是叶子节点还是中间节点。如果有终结符那么就是叶子结点，通过SplitString方法解析出来val然后生成一个shortNode。 不过没有终结符，那么说明是扩展节点， 通过decodeRef来解析剩下的节点，然后生成一个shortNode。
+
+            func decodeShort(hash, buf, elems []byte, cachegen uint16) (node, error) {
+            kbuf, rest, err := rlp.SplitString(elems)
+            if err != nil {
+            return nil, err
+            }
+            flag := nodeFlag{hash: hash, gen: cachegen}
+            key := compactToHex(kbuf)
+            if hasTerm(key) {
+            // value node
+            val, _, err := rlp.SplitString(rest)
+            if err != nil {
+            return nil, fmt.Errorf(&quot;invalid value node: %v&quot;, err)
+            }
+            return &amp;shortNode{key, append(valueNode{}, val...), flag}, nil
+            }
+            r, _, err := decodeRef(rest, cachegen)
+            if err != nil {
+            return nil, wrapError(err, &quot;val&quot;)
+            }
+            return &amp;shortNode{key, r, flag}, nil
+            }
+
+            decodeRef方法根据数据类型进行解析，如果类型是list，那么有可能是内容&lt;32的值，那么调用decodeNode进行解析。 如果是空节点，那么返回空，如果是hash值，那么构造一个hashNode进行返回，注意的是这里没有继续进行解析，如果需要继续解析这个hashNode，那么需要继续调用resolveHash方法。 到这里decodeShort方法就调用完成了。
+
+            func decodeRef(buf []byte, cachegen uint16) (node, []byte, error) {
+            kind, val, rest, err := rlp.Split(buf)
+            if err != nil {
+            return nil, buf, err
+            }
+            switch {
+            case kind == rlp.List:
+            // &#039;embedded&#039; node reference. The encoding must be smaller
+            // than a hash in order to be valid.
+            if size := len(buf) - len(rest); size &gt; hashLen {
+            err := fmt.Errorf(&quot;oversized embedded node (size is %d bytes, want size &lt; %d)&quot;, size, hashLen)
+            return nil, buf, err
+            }
+            n, err := decodeNode(nil, buf, cachegen)
+            return n, rest, err
+            case kind == rlp.String &amp;&amp; len(val) == 0:
+            // empty node
+            return nil, rest, nil
+            case kind == rlp.String &amp;&amp; len(val) == 32:
+            return append(hashNode{}, val...), rest, nil
+            default:
+            return nil, nil, fmt.Errorf(&quot;invalid RLP string size %d (want 0 or 32)&quot;, len(val))
+            }
+            }
+
+            decodeFull方法。根decodeShort方法的流程差不多。
+
+
+            func decodeFull(hash, buf, elems []byte, cachegen uint16) (*fullNode, error) {
+            n := &amp;fullNode{flags: nodeFlag{hash: hash, gen: cachegen}}
+            for i := 0; i &lt; 16; i++ {
+            cld, rest, err := decodeRef(elems, cachegen)
+            if err != nil {
+            return n, wrapError(err, fmt.Sprintf(&quot;[%d]&quot;, i))
+            }
+            n.Children[i], elems = cld, rest
+            }
+            val, _, err := rlp.SplitString(elems)
+            if err != nil {
+            return n, err
+            }
+            if len(val) &gt; 0 {
+            n.Children[16] = append(valueNode{}, val...)
+            }
+            return n, nil
+            }
+
+
+            ### Trie树的cache管理
+            Trie树的cache管理。 还记得Trie树的结构里面有两个参数， 一个是cachegen,一个是cachelimit。这两个参数就是cache控制的参数。 Trie树每一次调用Commit方法，会导致当前的cachegen增加1。
+
+            func (t *Trie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {
+            hash, cached, err := t.hashRoot(db)
+            if err != nil {
+            return (common.Hash{}), err
+            }
+            t.root = cached
+            t.cachegen++
+            return common.BytesToHash(hash.(hashNode)), nil
+            }
+
+            然后在Trie树插入的时候，会把当前的cachegen存放到节点中。
+
+            func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {
+            ....
+            return true, &amp;shortNode{n.Key, nn, t.newFlag()}, nil
+            }
+
+            // newFlag returns the cache flag value for a newly created node.
+            func (t *Trie) newFlag() nodeFlag {
+            return nodeFlag{dirty: true, gen: t.cachegen}
+            }
+
+            如果 trie.cachegen - node.cachegen &gt; cachelimit，就可以把节点从内存里面卸载掉。 也就是说节点经过几次Commit，都没有修改，那么就把节点从内存里面卸载，以便节约内存给其他节点使用。
+
+            卸载过程在我们的 hasher.hash方法中， 这个方法是在commit的时候调用。如果方法的canUnload方法调用返回真，那么就卸载节点，观察他的返回值，只返回了hash节点，而没有返回node节点，这样节点就没有引用，不久就会被gc清除掉。 节点被卸载掉之后，会用一个hashNode节点来表示这个节点以及其子节点。 如果后续需要使用，可以通过方法把这个节点加载到内存里面来。
+
+            func (h *hasher) hash(n node, db DatabaseWriter, force bool) (node, node, error) {
+            if hash, dirty := n.cache(); hash != nil {
+            if db == nil {
+            return hash, n, nil
+            }
+            if n.canUnload(h.cachegen, h.cachelimit) {
+            // Unload the node from cache. All of its subnodes will have a lower or equal
+            // cache generation number.
+            cacheUnloadCounter.Inc(1)
+            return hash, hash, nil
+            }
+            if !dirty {
+            return hash, n, nil
+            }
+            }
+
+            canUnload方法是一个接口，不同的node调用不同的方法。
+
+            // canUnload tells whether a node can be unloaded.
+            func (n *nodeFlag) canUnload(cachegen, cachelimit uint16) bool {
+            return !n.dirty &amp;&amp; cachegen-n.gen &gt;= cachelimit
+            }
+
+            func (n *fullNode) canUnload(gen, limit uint16) bool  { return n.flags.canUnload(gen, limit) }
+            func (n *shortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload(gen, limit) }
+            func (n hashNode) canUnload(uint16, uint16) bool      { return false }
+            func (n valueNode) canUnload(uint16, uint16) bool     { return false }
+
+            func (n *fullNode) cache() (hashNode, bool)  { return n.flags.hash, n.flags.dirty }
+            func (n *shortNode) cache() (hashNode, bool) { return n.flags.hash, n.flags.dirty }
+            func (n hashNode) cache() (hashNode, bool)   { return nil, true }
+            func (n valueNode) cache() (hashNode, bool)  { return nil, true }
+
+            ### proof.go Trie树的默克尔证明
+            主要提供两个方法，Prove方法获取指定Key的proof证明， proof证明是从根节点到叶子节点的所有节点的hash值列表。 VerifyProof方法，接受一个roothash值和proof证明和key来验证key是否存在。
+
+            Prove方法，从根节点开始。把经过的节点的hash值一个一个存入到list中。然后返回。
+
+            // Prove constructs a merkle proof for key. The result contains all
+            // encoded nodes on the path to the value at key. The value itself is
+            // also included in the last node and can be retrieved by verifying
+            // the proof.
+            //
+            // If the trie does not contain a value for key, the returned proof
+            // contains all nodes of the longest existing prefix of the key
+            // (at least the root node), ending with the node that proves the
+            // absence of the key.
+            func (t *Trie) Prove(key []byte) []rlp.RawValue {
+            // Collect all nodes on the path to key.
+            key = keybytesToHex(key)
+            nodes := []node{}
+            tn := t.root
+            for len(key) &gt; 0 &amp;&amp; tn != nil {
+            switch n := tn.(type) {
+            case *shortNode:
+            if len(key) &lt; len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {
+            // The trie doesn&#039;t contain the key.
+            tn = nil
+            } else {
+            tn = n.Val
+            key = key[len(n.Key):]
+            }
+            nodes = append(nodes, n)
+            case *fullNode:
+            tn = n.Children[key[0]]
+            key = key[1:]
+            nodes = append(nodes, n)
+            case hashNode:
+            var err error
+            tn, err = t.resolveHash(n, nil)
+            if err != nil {
+            log.Error(fmt.Sprintf(&quot;Unhandled trie error: %v&quot;, err))
+            return nil
+            }
+            default:
+            panic(fmt.Sprintf(&quot;%T: invalid node: %v&quot;, tn, tn))
+            }
+            }
+            hasher := newHasher(0, 0)
+            proof := make([]rlp.RawValue, 0, len(nodes))
+            for i, n := range nodes {
+            // Don&#039;t bother checking for errors here since hasher panics
+            // if encoding doesn&#039;t work and we&#039;re not writing to any database.
+            n, _, _ = hasher.hashChildren(n, nil)
+            hn, _ := hasher.store(n, nil, false)
+            if _, ok := hn.(hashNode); ok || i == 0 {
+            // If the node&#039;s database encoding is a hash (or is the
+            // root node), it becomes a proof element.
+            enc, _ := rlp.EncodeToBytes(n)
+            proof = append(proof, enc)
+            }
+            }
+            return proof
+            }
+
+            VerifyProof方法，接收一个rootHash参数，key参数，和proof数组， 来一个一个验证是否能够和数据库里面的能够对应上。
+
+            // VerifyProof checks merkle proofs. The given proof must contain the
+            // value for key in a trie with the given root hash. VerifyProof
+            // returns an error if the proof contains invalid trie nodes or the
+            // wrong value.
+            func VerifyProof(rootHash common.Hash, key []byte, proof []rlp.RawValue) (value []byte, err error) {
+            key = keybytesToHex(key)
+            sha := sha3.NewKeccak256()
+            wantHash := rootHash.Bytes()
+            for i, buf := range proof {
+            sha.Reset()
+            sha.Write(buf)
+            if !bytes.Equal(sha.Sum(nil), wantHash) {
+            return nil, fmt.Errorf(&quot;bad proof node %d: hash mismatch&quot;, i)
+            }
+            n, err := decodeNode(wantHash, buf, 0)
+            if err != nil {
+            return nil, fmt.Errorf(&quot;bad proof node %d: %v&quot;, i, err)
+            }
+            keyrest, cld := get(n, key)
+            switch cld := cld.(type) {
+            case nil:
+            if i != len(proof)-1 {
+            return nil, fmt.Errorf(&quot;key mismatch at proof node %d&quot;, i)
+            } else {
+            // The trie doesn&#039;t contain the key.
+            return nil, nil
+            }
+            case hashNode:
+            key = keyrest
+            wantHash = cld
+            case valueNode:
+            if i != len(proof)-1 {
+            return nil, errors.New(&quot;additional nodes at end of proof&quot;)
+            }
+            return cld, nil
+            }
+            }
+            return nil, errors.New(&quot;unexpected end of proof&quot;)
+            }
+
+            func get(tn node, key []byte) ([]byte, node) {
+            for {
+            switch n := tn.(type) {
+            case *shortNode:
+            if len(key) &lt; len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {
+            return nil, nil
+            }
+            tn = n.Val
+            key = key[len(n.Key):]
+            case *fullNode:
+            tn = n.Children[key[0]]
+            key = key[1:]
+            case hashNode:
+            return key, n
+            case nil:
+            return key, nil
+            case valueNode:
+            return nil, n
+            default:
+            panic(fmt.Sprintf(&quot;%T: invalid node: %v&quot;, tn, tn))
+            }
+            }
+            }
+
+
+            ### security_trie.go 加密的Trie
+            为了避免刻意使用很长的key导致访问时间的增加， security_trie包装了一下trie树， 所有的key都转换成keccak256算法计算的hash值。同时在数据库里面存储hash值对应的原始的key。
+
+            type SecureTrie struct {
+            trie             Trie    //原始的Trie树
+            hashKeyBuf       [secureKeyLength]byte   //计算hash值的buf
+            secKeyBuf        [200]byte               //hash值对应的key存储的时候的数据库前缀
+            secKeyCache      map[string][]byte      //记录hash值和对应的key的映射
+            secKeyCacheOwner *SecureTrie // Pointer to self, replace the key cache on mismatch
+            }
+
+            func NewSecure(root common.Hash, db Database, cachelimit uint16) (*SecureTrie, error) {
+            if db == nil {
+            panic(&quot;NewSecure called with nil database&quot;)
+            }
+            trie, err := New(root, db)
+            if err != nil {
+            return nil, err
+            }
+            trie.SetCacheLimit(cachelimit)
+            return &amp;SecureTrie{trie: *trie}, nil
+            }
+
+            // Get returns the value for key stored in the trie.
+            // The value bytes must not be modified by the caller.
+            func (t *SecureTrie) Get(key []byte) []byte {
+            res, err := t.TryGet(key)
+            if err != nil {
+            log.Error(fmt.Sprintf(&quot;Unhandled trie error: %v&quot;, err))
+            }
+            return res
+            }
+
+            // TryGet returns the value for key stored in the trie.
+            // The value bytes must not be modified by the caller.
+            // If a node was not found in the database, a MissingNodeError is returned.
+            func (t *SecureTrie) TryGet(key []byte) ([]byte, error) {
+            return t.trie.TryGet(t.hashKey(key))
+            }
+            func (t *SecureTrie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {
+            if len(t.getSecKeyCache()) &gt; 0 {
+            for hk, key := range t.secKeyCache {
+            if err := db.Put(t.secKey([]byte(hk)), key); err != nil {
+            return common.Hash{}, err
+            }
+            }
+            t.secKeyCache = make(map[string][]byte)
+            }
+            return t.trie.CommitTo(db)
+            }
+
+
+        </div>
+        <div class="catalog">
+            <ul>
+                <li><a href="1092367">空白目录</a></li>
+                <li><a href="1092368">第一张</a></li>
+                <li><a href="1092369">第二节</a></li>
+                <li><a href="1092370">第二章</a></li>
+                <li><a href="1092371">第一节</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="dimmer">
+        <div class="loader"></div>
+    </div>
+</div>
+<script type="application/payload+json">
+    {
+        "config":{"plugins":["highlight"],"id":427613,"title":"2222222222222222","description":"232323","cover":"https:\/\/cover.kancloud.cn\/sunlidong\/a88888888!middle","author":{"name":"37","email":"654460176@qq.com","url":"https:\/\/www.kancloud.cn\/@sunlidong"}},
+        "options":{"book":{"id":427613,"title":"2222222222222222","namespace":"sunlidong","name":"a88888888","price":0,"cover":"https:\/\/cover.kancloud.cn\/sunlidong\/a88888888","middle_cover":"https:\/\/cover.kancloud.cn\/sunlidong\/a88888888!middle","small_cover":"https:\/\/cover.kancloud.cn\/sunlidong\/a88888888!small"},"plugins":{"host":"plugins.kancloud.cn","scheme":"https"},"web":{"host":"www.kancloud.cn","scheme":"https"},"environment":"reader","base":"\/sunlidong\/a88888888\/content","entry":"\/sunlidong\/a88888888"},
+        "style": "",
+        "article":{"path":"1092369","ref":"\u7b2c\u4e8c\u8282.md","title":"\u7b2c\u4e8c\u8282","content":"\u5305trie \u5b9e\u73b0\u4e86Merkle Patricia Tries\uff0c\u8fd9\u91cc\u7528\u7b80\u79f0MPT\u6765\u79f0\u547c\u8fd9\u79cd\u6570\u636e\u7ed3\u6784\uff0c\u8fd9\u79cd\u6570\u636e\u7ed3\u6784\u5b9e\u9645\u4e0a\u662f\u4e00\u79cdTrie\u6811\u53d8\u79cd\uff0cMPT\u662f\u4ee5\u592a\u574a\u4e2d\u4e00\u79cd\u975e\u5e38\u91cd\u8981\u7684\u6570\u636e\u7ed3\u6784\uff0c\u7528\u6765\u5b58\u50a8\u7528\u6237\u8d26\u6237\u7684\u72b6\u6001\u4ee5\u53ca\u72b6\u6001\u7684\u53d8\u66f4\uff0c\u7528\u6765\u5b58\u50a8\u4ea4\u6613\u4fe1\u606f\uff0c\u7528\u6765\u5b58\u50a8\u4ea4\u6613\u7684\u6536\u636e\u4fe1\u606f\u3002MPT\u5b9e\u9645\u4e0a\u662f\u4e09\u79cd\u6570\u636e\u7ed3\u6784\u7684\u7ec4\u5408\uff0c\u5206\u522b\u662fTrie\u6811\uff0c Patricia Trie\uff0c \u548cMerkle\u6811\u3002\u4e0b\u9762\u5206\u522b\u4ecb\u7ecd\u8fd9\u4e09\u79cd\u6570\u636e\u7ed3\u6784\u3002\n\n## Trie\u6811 (\u5f15\u7528\u4ecb\u7ecd http:\/\/dongxicheng.org\/structure\/trietree\/)\nTrie\u6811\uff0c\u53c8\u79f0\u5b57\u5178\u6811\uff0c\u5355\u8bcd\u67e5\u627e\u6811\u6216\u8005\u524d\u7f00\u6811\uff0c\u662f\u4e00\u79cd\u7528\u4e8e\u5feb\u901f\u68c0\u7d22\u7684\u591a\u53c9\u6811\u7ed3\u6784\uff0c\u5982\u82f1\u6587\u5b57\u6bcd\u7684\u5b57\u5178\u6811\u662f\u4e00\u4e2a26\u53c9\u6811\uff0c\u6570\u5b57\u7684\u5b57\u5178\u6811\u662f\u4e00\u4e2a10\u53c9\u6811\u3002\n\nTrie\u6811\u53ef\u4ee5\u5229\u7528\u5b57\u7b26\u4e32\u7684\u516c\u5171\u524d\u7f00\u6765\u8282\u7ea6\u5b58\u50a8\u7a7a\u95f4\u3002\u5982\u4e0b\u56fe\u6240\u793a\uff0c\u8be5trie\u6811\u752810\u4e2a\u8282\u70b9\u4fdd\u5b58\u4e866\u4e2a\u5b57\u7b26\u4e32tea\uff0cten\uff0cto\uff0cin\uff0cinn\uff0cint\uff1a\n\n\n\u5728\u8be5trie\u6811\u4e2d\uff0c\u5b57\u7b26\u4e32in\uff0cinn\u548cint\u7684\u516c\u5171\u524d\u7f00\u662f\u201cin\u201d\uff0c\u56e0\u6b64\u53ef\u4ee5\u53ea\u5b58\u50a8\u4e00\u4efd\u201cin\u201d\u4ee5\u8282\u7701\u7a7a\u95f4\u3002\u5f53\u7136\uff0c\u5982\u679c\u7cfb\u7edf\u4e2d\u5b58\u5728\u5927\u91cf\u5b57\u7b26\u4e32\u4e14\u8fd9\u4e9b\u5b57\u7b26\u4e32\u57fa\u672c\u6ca1\u6709\u516c\u5171\u524d\u7f00\uff0c\u5219\u76f8\u5e94\u7684trie\u6811\u5c06\u975e\u5e38\u6d88\u8017\u5185\u5b58\uff0c\u8fd9\u4e5f\u662ftrie\u6811\u7684\u4e00\u4e2a\u7f3a\u70b9\u3002\n\nTrie\u6811\u7684\u57fa\u672c\u6027\u8d28\u53ef\u4ee5\u5f52\u7eb3\u4e3a\uff1a\n\n- \u6839\u8282\u70b9\u4e0d\u5305\u542b\u5b57\u7b26\uff0c\u9664\u6839\u8282\u70b9\u610f\u5916\u6bcf\u4e2a\u8282\u70b9\u53ea\u5305\u542b\u4e00\u4e2a\u5b57\u7b26\u3002\n- \u4ece\u6839\u8282\u70b9\u5230\u67d0\u4e00\u4e2a\u8282\u70b9\uff0c\u8def\u5f84\u4e0a\u7ecf\u8fc7\u7684\u5b57\u7b26\u8fde\u63a5\u8d77\u6765\uff0c\u4e3a\u8be5\u8282\u70b9\u5bf9\u5e94\u7684\u5b57\u7b26\u4e32\u3002\n- \u6bcf\u4e2a\u8282\u70b9\u7684\u6240\u6709\u5b50\u8282\u70b9\u5305\u542b\u7684\u5b57\u7b26\u4e32\u4e0d\u76f8\u540c\u3002\n\n## Patricia Tries (\u524d\u7f00\u6811)\n\u524d\u7f00\u6811\u6839Trie\u6811\u7684\u4e0d\u540c\u4e4b\u5904\u5728\u4e8eTrie\u6811\u7ed9\u6bcf\u4e00\u4e2a\u5b57\u7b26\u4e32\u5206\u914d\u4e00\u4e2a\u8282\u70b9\uff0c\u8fd9\u6837\u5982\u679c\u5f88\u591a\u5f88\u957f\u7684\uff0c\u53c8\u6ca1\u6709\u516c\u5171\u8282\u70b9\u7684\u5b57\u7b26\u4e32\u5c31\u4f1a\u5bfc\u81f4Trie\u6811\u9000\u5316\u6210\u4e00\u4e2a\u6570\u7ec4\u3002\u5728\u4ee5\u592a\u574a\u91cc\u9762\u4f1a\u7531\u9ed1\u5ba2\u6784\u9020\u5f88\u591a\u8fd9\u79cd\u8282\u70b9\u9020\u6210\u62d2\u7edd\u670d\u52a1\u653b\u51fb\u3002\u524d\u7f00\u6811\u7684\u4e0d\u540c\u4e4b\u5904\u5728\u4e8e\u5982\u679c\u8282\u70b9\u516c\u5171\u524d\u7f00\uff0c\u90a3\u4e48\u5c31\u4f7f\u7528\u516c\u5171\u524d\u7f00\uff0c\u5426\u5219\u5c31\u628a\u5269\u4e0b\u7684\u6240\u6709\u8282\u70b9\u63d2\u5165\u540c\u4e00\u4e2a\u8282\u70b9\u3002Patricia\u76f8\u5bf9Tire\u7684\u4f18\u5316\u6b63\u5982\u4e0b\u56fe\uff1a\n\n\n\u4e0a\u56fe\u5b58\u50a8\u76848\u4e2aKey Value\u5bf9\uff0c\u53ef\u4ee5\u770b\u5230\u524d\u7f00\u6811\u7684\u7279\u70b9\u3002\n\n|Key           | value |\n| ------------- | ---: |\n|6c0a5c71ec20bq3w|5     |\n|6c0a5c71ec20CX7j|27    |\n|6c0a5c71781a1FXq|18    |\n|6c0a5c71781a9Dog|64    |\n|6c0a8f743b95zUfe|30    |\n|6c0a8f743b95jx5R|2     |\n|6c0a8f740d16y03G|43    |\n|6c0a8f740d16vcc1|48    |\n\n## Merkle\u6811 (\u53c2\u8003 http:\/\/blog.csdn.net\/wo541075754\/article\/details\/54632929\uff09\nMerkle Tree\uff0c\u901a\u5e38\u4e5f\u88ab\u79f0\u4f5cHash Tree\uff0c\u987e\u540d\u601d\u4e49\uff0c\u5c31\u662f\u5b58\u50a8hash\u503c\u7684\u4e00\u68f5\u6811\u3002Merkle\u6811\u7684\u53f6\u5b50\u662f\u6570\u636e\u5757(\u4f8b\u5982\uff0c\u6587\u4ef6\u6216\u8005\u6587\u4ef6\u7684\u96c6\u5408)\u7684hash\u503c\u3002\u975e\u53f6\u8282\u70b9\u662f\u5176\u5bf9\u5e94\u5b50\u8282\u70b9\u4e32\u8054\u5b57\u7b26\u4e32\u7684hash\u3002\n\n![image](picture\/trie_3.png)\n\nMerkle Tree\u7684\u4e3b\u8981\u4f5c\u7528\u662f\u5f53\u6211\u62ff\u5230Top Hash\u7684\u65f6\u5019\uff0c\u8fd9\u4e2ahash\u503c\u4ee3\u8868\u4e86\u6574\u9897\u6811\u7684\u4fe1\u606f\u6458\u8981\uff0c\u5f53\u6811\u91cc\u9762\u4efb\u4f55\u4e00\u4e2a\u6570\u636e\u53d1\u751f\u4e86\u53d8\u52a8\uff0c\u90fd\u4f1a\u5bfc\u81f4Top Hash\u7684\u503c\u53d1\u751f\u53d8\u5316\u3002 \u800cTop Hash\u7684\u503c\u662f\u4f1a\u5b58\u50a8\u5230\u533a\u5757\u94fe\u7684\u533a\u5757\u5934\u91cc\u9762\u53bb\u7684\uff0c \u533a\u5757\u5934\u662f\u5fc5\u987b\u7ecf\u8fc7\u5de5\u4f5c\u91cf\u8bc1\u660e\u3002 \u8fd9\u4e5f\u5c31\u662f\u8bf4\u6211\u53ea\u8981\u62ff\u5230\u4e00\u4e2a\u533a\u5757\u5934\uff0c\u5c31\u53ef\u4ee5\u5bf9\u533a\u5757\u4fe1\u606f\u8fdb\u884c\u9a8c\u8bc1\u3002 \u66f4\u52a0\u8be6\u7ec6\u7684\u4fe1\u606f\u8bf7\u53c2\u8003\u90a3\u4e2a\u535a\u5ba2\u3002\u6709\u8be6\u7ec6\u7684\u4ecb\u7ecd\u3002\n\n\n## \u4ee5\u592a\u574a\u7684MPT\n\u6bcf\u4e00\u4e2a\u4ee5\u592a\u574a\u7684\u533a\u5757\u5934\u5305\u542b\u4e09\u9897MPT\u6811\uff0c\u5206\u522b\u662f\n\n- \u4ea4\u6613\u6811\n- \u6536\u636e\u6811(\u4ea4\u6613\u6267\u884c\u8fc7\u7a0b\u4e2d\u7684\u4e00\u4e9b\u6570\u636e)\n- \u72b6\u6001\u6811(\u8d26\u53f7\u4fe1\u606f\uff0c \u5408\u7ea6\u8d26\u6237\u548c\u7528\u6237\u8d26\u6237)\n\n\u4e0b\u56fe\u4e2d\u662f\u4e24\u4e2a\u533a\u5757\u5934\uff0c\u5176\u4e2dstate root\uff0ctx root receipt root\u5206\u522b\u5b58\u50a8\u4e86\u8fd9\u4e09\u68f5\u6811\u7684\u6811\u6839\uff0c\u7b2c\u4e8c\u4e2a\u533a\u5757\u663e\u793a\u4e86\u5f53\u8d26\u53f7 175\u7684\u6570\u636e\u53d8\u66f4(27 -> 45)\u7684\u65f6\u5019\uff0c\u53ea\u9700\u8981\u5b58\u50a8\u8ddf\u8fd9\u4e2a\u8d26\u53f7\u76f8\u5173\u7684\u90e8\u5206\u6570\u636e\uff0c\u800c\u4e14\u8001\u7684\u533a\u5757\u4e2d\u7684\u6570\u636e\u8fd8\u662f\u53ef\u4ee5\u6b63\u5e38\u8bbf\u95ee\u3002(\u8fd9\u4e2a\u6709\u70b9\u7c7b\u4f3c\u4e0e\u51fd\u6570\u5f0f\u7f16\u7a0b\u8bed\u8a00\u4e2d\u7684\u4e0d\u53ef\u53d8\u7684\u6570\u636e\u7ed3\u6784\u7684\u5b9e\u73b0)\n![image](picture\/trie_4.png)\n\u8be6\u7ec6\u7ed3\u6784\u4e3a\n![world state trie](picture\/worldstatetrie.png)\n\n## \u9ec4\u76ae\u4e66\u5f62\u5f0f\u5316\u5b9a\u4e49(Appendix D. Modified Merkle Patricia Tree)\n\n\u6b63\u5f0f\u5730\uff0c\u6211\u4eec\u5047\u8bbe\u8f93\u5165\u503cJ\uff0c\u5305\u542bKey Value\u5bf9\u7684\u96c6\u5408\uff08Key Value\u90fd\u662f\u5b57\u8282\u6570\u7ec4\uff09\uff1a\n\n\n\u5f53\u5904\u7406\u8fd9\u6837\u4e00\u4e2a\u96c6\u5408\u7684\u65f6\u5019\uff0c\u6211\u4eec\u4f7f\u7528\u4e0b\u9762\u7684\u8fd9\u6837\u6807\u8bc6\u8868\u793a\u6570\u636e\u7684 Key\u548cValue(\u5bf9\u4e8eJ\u96c6\u5408\u4e2d\u7684\u4efb\u610f\u4e00\u4e2aI\uff0c I0\u8868\u793aKey\uff0c I1\u8868\u793aValue)\n\n\n\u5bf9\u4e8e\u4efb\u4f55\u7279\u5b9a\u7684\u5b57\u8282\uff0c\u6211\u4eec\u53ef\u4ee5\u8868\u793a\u4e3a\u5bf9\u5e94\u7684\u534a\u5b57\u8282\uff08nibble\uff09\uff0c\u5176\u4e2dY\u96c6\u5408\u5728Hex-Prefix Encoding\u4e2d\u6709\u8bf4\u660e\uff0c\u610f\u4e3a\u534a\u5b57\u8282\uff084bit\uff09\u96c6\u5408\uff08\u4e4b\u6240\u4ee5\u91c7\u7528\u534a\u5b57\u8282\uff0c\u5176\u4e0e\u540e\u7eed\u8bf4\u660e\u7684\u5206\u652f\u8282\u70b9branch node\u7ed3\u6784\u4ee5\u53cakey\u4e2d\u7f16\u7801flag\u6709\u5173\uff09\n\n\n\n\u6211\u4eec\u5b9a\u4e49\u4e86TRIE\u51fd\u6570\uff0c\u7528\u6765\u8868\u793a\u6811\u6839\u7684HASH\u503c\uff08\u5176\u4e2dc\u51fd\u6570\u7684\u7b2c\u4e8c\u4e2a\u53c2\u6570\uff0c\u610f\u4e3a\u6784\u5efa\u5b8c\u6210\u540e\u6811\u7684\u5c42\u6570\u3002root\u7684\u503c\u4e3a0\uff09\n\n\n\n\u6211\u4eec\u8fd8\u5b9a\u4e49\u4e00\u4e2a\u51fd\u6570n\uff0c\u8fd9\u4e2atrie\u7684\u8282\u70b9\u51fd\u6570\u3002 \u5f53\u7ec4\u6210\u8282\u70b9\u65f6\uff0c\u6211\u4eec\u4f7f\u7528RLP\u5bf9\u7ed3\u6784\u8fdb\u884c\u7f16\u7801\u3002 \u4f5c\u4e3a\u964d\u4f4e\u5b58\u50a8\u590d\u6742\u5ea6\u7684\u624b\u6bb5\uff0c\u5bf9\u4e8eRLP\u5c11\u4e8e32\u5b57\u8282\u7684\u8282\u70b9\uff0c\u6211\u4eec\u76f4\u63a5\u5b58\u50a8\u5176RLP\u503c\uff0c \u5bf9\u4e8e\u90a3\u4e9b\u8f83\u5927\u7684\uff0c\u6211\u4eec\u5b58\u50a8\u5176HASH\u8282\u70b9\u3002\n\u6211\u4eec\u7528c\u6765\u5b9a\u4e49\u8282\u70b9\u7ec4\u6210\u51fd\u6570\uff1a\n\n\n\n\u4ee5\u7c7b\u4f3c\u4e8e\u57fa\u6570\u6811\u7684\u65b9\u5f0f\uff0c\u5f53Trie\u6811\u4ece\u6839\u904d\u5386\u5230\u53f6\u65f6\uff0c\u53ef\u4ee5\u6784\u5efa\u5355\u4e2a\u952e\u503c\u5bf9\u3002 Key\u901a\u8fc7\u904d\u5386\u7d2f\u79ef\uff0c\u4ece\u6bcf\u4e2a\u5206\u652f\u8282\u70b9\u83b7\u53d6\u5355\u4e2a\u534a\u5b57\u8282\uff08\u4e0e\u57fa\u6570\u6811\u4e00\u6837\uff09\u3002 \u4e0e\u57fa\u6570\u6811\u4e0d\u540c\uff0c\u5728\u5171\u4eab\u76f8\u540c\u524d\u7f00\u7684\u591a\u4e2aKey\u7684\u60c5\u51b5\u4e0b\uff0c\u6216\u8005\u5728\u5177\u6709\u552f\u4e00\u540e\u7f00\u7684\u5355\u4e2aKey\u7684\u60c5\u51b5\u4e0b\uff0c\u63d0\u4f9b\u4e24\u4e2a\u4f18\u5316\u8282\u70b9\u3002\u7684\u60c5\u51b5\u4e0b\uff0c\u6216\u8005\u5728\u5177\u6709\u552f\u4e00\u540e\u7f00\u7684\u5355\u4e2a\u5bc6\u94a5\u7684\u60c5\u51b5\u4e0b\uff0c\u63d0\u4f9b\u4e24\u4e2a\u4f18\u5316\u8282\u70b9\u3002 \u56e0\u6b64\uff0c\u5f53\u904d\u5386\u65f6\uff0c\u53ef\u80fd\u4ece\u5176\u4ed6\u4e24\u4e2a\u8282\u70b9\u7c7b\u578b\uff0c\u6269\u5c55\u548c\u53f6\u4e2d\u7684\u6bcf\u4e00\u4e2a\u6f5c\u5728\u5730\u83b7\u53d6\u591a\u4e2a\u534a\u5b57\u8282\u3002\u5728Trie\u6811\u4e2d\u6709\u4e09\u79cd\u8282\u70b9\uff1a\n\n- **\u53f6\u5b50\u8282\u70b9(Leaf):** \u53f6\u5b50\u8282\u70b9\u5305\u542b\u4e24\u4e2a\u5b57\u6bb5\uff0c \u7b2c\u4e00\u4e2a\u5b57\u6bb5\u662f\u5269\u4e0b\u7684Key\u7684\u534a\u5b57\u8282\u7f16\u7801,\u800c\u4e14\u534a\u5b57\u8282\u7f16\u7801\u65b9\u6cd5\u7684\u7b2c\u4e8c\u4e2a\u53c2\u6570\u4e3atrue\uff0c \u7b2c\u4e8c\u4e2a\u5b57\u6bb5\u662fValue\n- **\u6269\u5c55\u8282\u70b9(Extention):** \u6269\u5c55\u8282\u70b9\u4e5f\u5305\u542b\u4e24\u4e2a\u5b57\u6bb5\uff0c \u7b2c\u4e00\u4e2a\u5b57\u6bb5\u662f\u5269\u4e0b\u7684Key\u7684\u53ef\u4ee5\u81f3\u5c11\u88ab\u4e24\u4e2a\u5269\u4e0b\u8282\u70b9\u5171\u4eab\u7684\u90e8\u5206\u7684\u534a\u5b57\u8282\u7f16\u7801\uff0c\u7b2c\u4e8c\u4e2a\u5b57\u6bb5\u662fn(J,j)\n- **\u5206\u652f\u8282\u70b9(Branch):** \u5206\u652f\u8282\u70b9\u5305\u542b\u4e8617\u4e2a\u5b57\u6bb5\uff0c\u5176\u524d16\u4e2a\u9879\u76ee\u5bf9\u5e94\u4e8e\u8fd9\u4e9b\u70b9\u5728\u5176\u904d\u5386\u4e2d\u7684\u952e\u7684\u5341\u516d\u4e2a\u53ef\u80fd\u7684\u534a\u5b57\u8282\u503c\u4e2d\u7684\u6bcf\u4e00\u4e2a\u3002\u7b2c17\u4e2a\u5b57\u6bb5\u662f\u5b58\u50a8\u90a3\u4e9b\u5728\u5f53\u524d\u7ed3\u70b9\u7ed3\u675f\u4e86\u7684\u8282\u70b9(\u4f8b\u5982\uff0c \u6709\u4e09\u4e2akey,\u5206\u522b\u662f (abc ,abd, ab) \u7b2c17\u4e2a\u5b57\u6bb5\u50a8\u5b58\u4e86ab\u8282\u70b9\u7684\u503c)\n\n\u5206\u652f\u8282\u70b9\u53ea\u6709\u5728\u9700\u8981\u7684\u65f6\u5019\u4f7f\u7528\uff0c \u5bf9\u4e8e\u4e00\u4e2a\u53ea\u6709\u4e00\u4e2a\u975e\u7a7a key value\u5bf9\u7684Trie\u6811\uff0c\u53ef\u80fd\u4e0d\u5b58\u5728\u5206\u652f\u8282\u70b9\u3002 \u5982\u679c\u4f7f\u7528\u516c\u5f0f\u6765\u5b9a\u4e49\u8fd9\u4e09\u79cd\u8282\u70b9\uff0c \u90a3\u4e48\u516c\u5f0f\u5982\u4e0b\uff1a\n\u56fe\u4e2d\u7684HP\u51fd\u6570\u4ee3\u8868Hex-Prefix Encoding\uff0c\u662f\u4e00\u79cd\u534a\u5b57\u8282\u7f16\u7801\u683c\u5f0f\uff0cRLP\u662f\u4f7f\u7528RLP\u8fdb\u884c\u5e8f\u5217\u5316\u7684\u51fd\u6570\u3002\n\n![image](picture\/trie_10.png)\n\n\u5bf9\u4e8e\u4e0a\u56fe\u7684\u4e09\u79cd\u60c5\u51b5\u7684\u89e3\u91ca\n\n- \u5982\u679c\u5f53\u524d\u9700\u8981\u7f16\u7801\u7684KV\u96c6\u5408\u53ea\u5269\u4e0b\u4e00\u6761\u6570\u636e\uff0c\u90a3\u4e48\u8fd9\u6761\u6570\u636e\u6309\u7167\u7b2c\u4e00\u6761\u89c4\u5219\u8fdb\u884c\u7f16\u7801\u3002\n- \u5982\u679c\u5f53\u524d\u9700\u8981\u7f16\u7801\u7684KV\u96c6\u5408\u6709\u516c\u5171\u524d\u7f00\uff0c\u90a3\u4e48\u63d0\u53d6\u6700\u5927\u516c\u5171\u524d\u7f00\u5e76\u4f7f\u7528\u7b2c\u4e8c\u6761\u89c4\u5219\u8fdb\u884c\u5904\u7406\u3002\n- \u5982\u679c\u4e0d\u662f\u4e0a\u9762\u4e24\u79cd\u60c5\u51b5\uff0c\u90a3\u4e48\u4f7f\u7528\u5206\u652f\u8282\u70b9\u8fdb\u884c\u96c6\u5408\u5207\u5206\uff0c\u56e0\u4e3akey\u662f\u4f7f\u7528HP\u8fdb\u884c\u7f16\u7801\u7684\uff0c\u6240\u4ee5\u53ef\u80fd\u7684\u5206\u652f\u53ea\u67090-15\u8fd916\u4e2a\u5206\u652f\u3002\u53ef\u4ee5\u770b\u5230u\u7684\u503c\u7531n\u8fdb\u884c\u9012\u5f52\u5b9a\u4e49\uff0c\u800c\u5982\u679c\u6709\u8282\u70b9\u521a\u597d\u5728\u8fd9\u91cc\u5b8c\u7ed3\u4e86\uff0c\u90a3\u4e48\u7b2c17\u4e2a\u5143\u7d20v\u5c31\u662f\u4e3a\u8fd9\u79cd\u60c5\u51b5\u51c6\u5907\u7684\u3002\n\n\u5bf9\u4e8e\u6570\u636e\u5e94\u8be5\u5982\u4f55\u5b58\u50a8\u548c\u4e0d\u5e94\u8be5\u5982\u4f55\u5b58\u50a8\uff0c \u9ec4\u76ae\u4e66\u4e2d\u8bf4\u660e\u6ca1\u6709\u663e\u793a\u7684\u5b9a\u4e49\u3002\u6240\u4ee5\u8fd9\u662f\u4e00\u4e2a\u5b9e\u73b0\u4e0a\u7684\u95ee\u9898\u3002\u6211\u4eec\u7b80\u5355\u7684\u5b9a\u4e49\u4e86\u4e00\u4e2a\u51fd\u6570\u6765\u628aJ\u6620\u5c04\u4e3a\u4e00\u4e2aHash\u3002 \u6211\u4eec\u8ba4\u4e3a\u5bf9\u4e8e\u4efb\u610f\u4e00\u4e2aJ\uff0c\u53ea\u5b58\u5728\u552f\u4e00\u4e00\u4e2aHash\u503c\u3002\n\n### \u9ec4\u76ae\u4e66\u7684\u5f62\u5f0f\u5316\u5b9a\u4e49(Hex-Prefix Encoding)--\u5341\u516d\u8fdb\u5236\u524d\u7f00\u7f16\u7801\n\u5341\u516d\u8fdb\u5236\u524d\u7f00\u7f16\u7801\u662f\u5c06\u4efb\u610f\u6570\u91cf\u7684\u534a\u5b57\u8282\u7f16\u7801\u4e3a\u5b57\u8282\u6570\u7ec4\u7684\u6709\u6548\u65b9\u6cd5\u3002\u5b83\u80fd\u591f\u5b58\u50a8\u9644\u52a0\u6807\u5fd7\uff0c\u5f53\u5728Trie\u6811\u4e2d\u4f7f\u7528\u65f6(\u552f\u4e00\u4f1a\u4f7f\u7528\u7684\u5730\u65b9)\uff0c\u4f1a\u5728\u8282\u70b9\u7c7b\u578b\u4e4b\u95f4\u6d88\u9664\u6b67\u4e49\u3002\n\n\u5b83\u88ab\u5b9a\u4e49\u4e3a\u4ece\u4e00\u7cfb\u5217\u534a\u5b57\u8282\uff08\u7531\u96c6\u5408Y\u8868\u793a\uff09\u4e0e\u5e03\u5c14\u503c\u4e00\u8d77\u6620\u5c04\u5230\u5b57\u8282\u5e8f\u5217\uff08\u7531\u96c6\u5408B\u8868\u793a\uff09\u7684\u51fd\u6570HP\uff1a\n\n\n\n\u56e0\u6b64\uff0c\u7b2c\u4e00\u4e2a\u5b57\u8282\u7684\u9ad8\u534a\u5b57\u8282\u5305\u542b\u4e24\u4e2a\u6807\u5fd7; \u6700\u4f4ebit\u4f4d\u7f16\u7801\u4e86\u957f\u5ea6\u7684\u5947\u5076\u4f4d\uff0c\u7b2c\u4e8c\u4f4e\u7684bit\u4f4d\u7f16\u7801\u4e86flag\u7684\u503c\u3002 \u5728\u5076\u6570\u4e2a\u534a\u5b57\u8282\u7684\u60c5\u51b5\u4e0b\uff0c\u7b2c\u4e00\u4e2a\u5b57\u8282\u7684\u4f4e\u534a\u5b57\u8282\u4e3a\u96f6\uff0c\u5728\u5947\u6570\u7684\u60c5\u51b5\u4e0b\u4e3a\u7b2c\u4e00\u4e2a\u534a\u5b57\u8282\u3002 \u6240\u6709\u5269\u4f59\u7684\u534a\u5b57\u8282\uff08\u73b0\u5728\u662f\u5076\u6570\uff09\u9002\u5408\u5176\u4f59\u7684\u5b57\u8282\u3002\n\n## \u6e90\u7801\u5b9e\u73b0\n### trie\/encoding.go\nencoding.go\u4e3b\u8981\u5904\u7406trie\u6811\u4e2d\u7684\u4e09\u79cd\u7f16\u7801\u683c\u5f0f\u7684\u76f8\u4e92\u8f6c\u6362\u7684\u5de5\u4f5c\u3002 \u4e09\u79cd\u7f16\u7801\u683c\u5f0f\u5206\u522b\u4e3a\u4e0b\u9762\u7684\u4e09\u79cd\u7f16\u7801\u683c\u5f0f\u3002\n\n- **KEYBYTES encoding**\u8fd9\u79cd\u7f16\u7801\u683c\u5f0f\u5c31\u662f\u539f\u751f\u7684key\u5b57\u8282\u6570\u7ec4\uff0c\u5927\u90e8\u5206\u7684Trie\u7684API\u90fd\u662f\u4f7f\u7528\u8fd9\u8fb9\u7f16\u7801\u683c\u5f0f\n- **HEX encoding** \u8fd9\u79cd\u7f16\u7801\u683c\u5f0f\u6bcf\u4e00\u4e2a\u5b57\u8282\u5305\u542b\u4e86Key\u7684\u4e00\u4e2a\u534a\u5b57\u8282\uff0c\u5c3e\u90e8\u63a5\u4e0a\u4e00\u4e2a\u53ef\u9009\u7684'\u7ec8\u7ed3\u7b26','\u7ec8\u7ed3\u7b26'\u4ee3\u8868\u8fd9\u4e2a\u8282\u70b9\u5230\u5e95\u662f\u53f6\u5b50\u8282\u70b9\u8fd8\u662f\u6269\u5c55\u8282\u70b9\u3002\u5f53\u8282\u70b9\u88ab\u52a0\u8f7d\u5230\u5185\u5b58\u91cc\u9762\u7684\u65f6\u5019\u4f7f\u7528\u7684\u662f\u8fd9\u79cd\u8282\u70b9\uff0c\u56e0\u4e3a\u5b83\u7684\u65b9\u4fbf\u8bbf\u95ee\u3002\n- **COMPACT encoding** \u8fd9\u79cd\u7f16\u7801\u683c\u5f0f\u5c31\u662f\u4e0a\u9762\u9ec4\u76ae\u4e66\u91cc\u9762\u8bf4\u5230\u7684Hex-Prefix Encoding\uff0c\u8fd9\u79cd\u7f16\u7801\u683c\u5f0f\u53ef\u4ee5\u770b\u6210\u662f*HEX encoding**\u8fd9\u79cd\u7f16\u7801\u683c\u5f0f\u7684\u53e6\u5916\u4e00\u79cd\u7248\u672c\uff0c\u53ef\u4ee5\u5728\u5b58\u50a8\u5230\u6570\u636e\u5e93\u7684\u65f6\u5019\u8282\u7ea6\u78c1\u76d8\u7a7a\u95f4\u3002\n\n\u7b80\u5355\u7684\u7406\u89e3\u4e3a\uff1a\u5c06\u666e\u901a\u7684\u5b57\u8282\u5e8f\u5217keybytes\u7f16\u7801\u4e3a\u5e26\u6709t\u6807\u5fd7\u4e0e\u5947\u6570\u4e2a\u534a\u5b57\u8282nibble\u6807\u5fd7\u4f4d\u7684keybytes\n- keybytes\u4e3a\u6309\u5b8c\u6574\u5b57\u8282\uff088bit\uff09\u5b58\u50a8\u7684\u6b63\u5e38\u4fe1\u606f\n- hex\u4e3a\u6309\u7167\u534a\u5b57\u8282nibble\uff084bit\uff09\u50a8\u5b58\u4fe1\u606f\u7684\u683c\u5f0f\u3002\u4f9bcompact\u4f7f\u7528\n- \u4e3a\u4e86\u4fbf\u4e8e\u4f5c\u9ec4\u76ae\u4e66\u4e2dModified Merkle Patricia Tree\u7684\u8282\u70b9\u7684key\uff0c\u7f16\u7801\u4e3a\u5076\u6570\u5b57\u8282\u957f\u5ea6\u7684hex\u683c\u5f0f\u3002\u5176\u7b2c\u4e00\u4e2a\u534a\u5b57\u8282nibble\u4f1a\u5728\u4f4e\u76842\u4e2abit\u4f4d\u4e2d\uff0c\u7531\u9ad8\u5230\u4f4e\u5206\u522b\u5b58\u653et\u6807\u5fd7\u4e0e\u5947\u6570\u6807\u5fd7\u3002\u7ecfcompact\u7f16\u7801\u7684keybytes\uff0c\u5728\u589e\u52a0\u4e86hex\u7684t\u6807\u5fd7\u4e0e\u534a\u5b57\u8282nibble\u4e3a\u5076\u6570\u4e2a\uff08\u5373\u5b8c\u6574\u7684\u5b57\u8282\uff09\u7684\u60c5\u51b5\u4e0b\uff0c\u4fbf\u4e8e\u5b58\u50a8\n\n\u4ee3\u7801\u5b9e\u73b0\uff0c\u4e3b\u8981\u662f\u5b9e\u73b0\u4e86\u8fd9\u4e09\u79cd\u7f16\u7801\u7684\u76f8\u4e92\u8f6c\u6362\uff0c\u4ee5\u53ca\u4e00\u4e2a\u6c42\u53d6\u516c\u5171\u524d\u7f00\u7684\u65b9\u6cd5\u3002\n\n    func hexToCompact(hex []byte) []byte {\n        terminator := byte(0)\n        if hasTerm(hex) {\n            terminator = 1\n            hex = hex[:len(hex)-1]\n        }\n        buf := make([]byte, len(hex)\/2+1)\n        buf[0] = terminator << 5 \/\/ the flag byte\n        if len(hex)&1 == 1 {\n            buf[0] |= 1 << 4 \/\/ odd flag\n            buf[0] |= hex[0] \/\/ first nibble is contained in the first byte\n            hex = hex[1:]\n        }\n        decodeNibbles(hex, buf[1:])\n        return buf\n    }\n    \n    func compactToHex(compact []byte) []byte {\n        base := keybytesToHex(compact)\n        base = base[:len(base)-1]\n        \/\/ apply terminator flag\n        if base[0] >= 2 { \/\/ TODO \u5148\u5c06keybytesToHex\u8f93\u51fa\u7684\u672b\u5c3e\u7ed3\u675f\u6807\u5fd7\u5220\u9664\u540e\uff0c\u518d\u901a\u8fc7\u5224\u65ad\u5934\u534a\u4e2a\u5b57\u8282\u7684\u6807\u5fd7\u4f4dt\u52a0\u56de\u53bb\u3002\u64cd\u4f5c\u5197\u4f59\n            base = append(base, 16)\n        }\n        \/\/ apply odd flag\n        chop := 2 - base[0]&1\n        return base[chop:]\n    }\n    \n    func keybytesToHex(str []byte) []byte {\n        l := len(str)*2 + 1\n        var nibbles = make([]byte, l)\n        for i, b := range str {\n            nibbles[i*2] = b \/ 16\n            nibbles[i*2+1] = b % 16\n        }\n        nibbles[l-1] = 16\n        return nibbles\n    }\n    \n    \/\/ hexToKeybytes turns hex nibbles into key bytes.\n    \/\/ This can only be used for keys of even length.\n    func hexToKeybytes(hex []byte) []byte {\n        if hasTerm(hex) {\n            hex = hex[:len(hex)-1]\n        }\n        if len(hex)&1 != 0 {\n            panic(\"can't convert hex key of odd length\")\n        }\n        key := make([]byte, (len(hex)+1)\/2) \/\/ TODO \u5bf9\u4e8e\u4e00\u4e2a\u5df2\u7ecf\u5224\u65ad\u4e3a\u5076\u6570\u7684len(hex)\u5728\u6574\u96642\u7684\u540c\u65f6\u52a01\uff0c\u4e3a\u65e0\u6548\u7684+1\u903b\u8f91\n        decodeNibbles(hex, key)\n        return key\n    }\n    \n    func decodeNibbles(nibbles []byte, bytes []byte) {\n        for bi, ni := 0, 0; ni < len(nibbles); bi, ni = bi+1, ni+2 {\n            bytes[bi] = nibbles[ni]<<4 | nibbles[ni+1]\n        }\n    }\n    \n    \/\/ prefixLen returns the length of the common prefix of a and b.\n    func prefixLen(a, b []byte) int {\n        var i, length = 0, len(a)\n        if len(b) < length {\n            length = len(b)\n        }\n        for ; i < length; i++ {\n            if a[i] != b[i] {\n                break\n            }\n        }\n        return i\n    }\n    \n    \/\/ hasTerm returns whether a hex key has the terminator flag.\n    func hasTerm(s []byte) bool {\n        return len(s) > 0 && s[len(s)-1] == 16\n    }\n\n### \u6570\u636e\u7ed3\u6784\nnode\u7684\u7ed3\u6784\uff0c\u53ef\u4ee5\u770b\u5230node\u5206\u4e3a4\u79cd\u7c7b\u578b\uff0c fullNode\u5bf9\u5e94\u4e86\u9ec4\u76ae\u4e66\u91cc\u9762\u7684\u5206\u652f\u8282\u70b9\uff0cshortNode\u5bf9\u5e94\u4e86\u9ec4\u76ae\u4e66\u91cc\u9762\u7684\u6269\u5c55\u8282\u70b9\u548c\u53f6\u5b50\u8282\u70b9(\u901a\u8fc7shortNode.Val\u7684\u7c7b\u578b\u6765\u5bf9\u5e94\u5230\u5e95\u662f\u53f6\u5b50\u8282\u70b9(valueNode)\u8fd8\u662f\u5206\u652f\u8282\u70b9(fullNode))\n\n    type node interface {\n        fstring(string) string\n        cache() (hashNode, bool)\n        canUnload(cachegen, cachelimit uint16) bool\n    }\n    \n    type (\n        fullNode struct {\n            Children [17]node \/\/ Actual trie node data to encode\/decode (needs custom encoder)\n            flags    nodeFlag\n        }\n        shortNode struct {\n            Key   []byte\n            Val   node\n            flags nodeFlag\n        }\n        hashNode  []byte\n        valueNode []byte\n    )\n\ntrie\u7684\u7ed3\u6784\uff0c root\u5305\u542b\u4e86\u5f53\u524d\u7684root\u8282\u70b9\uff0c db\u662f\u540e\u7aef\u7684KV\u5b58\u50a8\uff0ctrie\u7684\u7ed3\u6784\u6700\u7ec8\u90fd\u662f\u9700\u8981\u901a\u8fc7KV\u7684\u5f62\u5f0f\u5b58\u50a8\u5230\u6570\u636e\u5e93\u91cc\u9762\u53bb\uff0c\u7136\u540e\u542f\u52a8\u7684\u65f6\u5019\u662f\u9700\u8981\u4ece\u6570\u636e\u5e93\u91cc\u9762\u52a0\u8f7d\u7684\u3002 originalRoot \u542f\u52a8\u52a0\u8f7d\u7684\u65f6\u5019\u7684hash\u503c\uff0c\u901a\u8fc7\u8fd9\u4e2ahash\u503c\u53ef\u4ee5\u5728\u6570\u636e\u5e93\u91cc\u9762\u6062\u590d\u51fa\u6574\u9897\u7684trie\u6811\u3002cachegen\u5b57\u6bb5\u6307\u793a\u4e86\u5f53\u524dTrie\u6811\u7684cache\u65f6\u4ee3\uff0c\u6bcf\u6b21\u8c03\u7528Commit\u64cd\u4f5c\u7684\u65f6\u5019\uff0c\u4f1a\u589e\u52a0Trie\u6811\u7684cache\u65f6\u4ee3\u3002 cache\u65f6\u4ee3\u4f1a\u88ab\u9644\u52a0\u5728node\u8282\u70b9\u4e0a\u9762\uff0c\u5982\u679c\u5f53\u524d\u7684cache\u65f6\u4ee3 - cachelimit\u53c2\u6570 \u5927\u4e8enode\u7684cache\u65f6\u4ee3\uff0c\u90a3\u4e48node\u4f1a\u4ececache\u91cc\u9762\u5378\u8f7d\uff0c\u4ee5\u4fbf\u8282\u7ea6\u5185\u5b58\u3002 \u5176\u5b9e\u8fd9\u5c31\u662f\u7f13\u5b58\u66f4\u65b0\u7684LRU\u7b97\u6cd5\uff0c \u5982\u679c\u4e00\u4e2a\u7f13\u5b58\u5728\u591a\u4e45\u6ca1\u6709\u88ab\u4f7f\u7528\uff0c\u90a3\u4e48\u5c31\u4ece\u7f13\u5b58\u91cc\u9762\u79fb\u9664\uff0c\u4ee5\u8282\u7ea6\u5185\u5b58\u7a7a\u95f4\u3002\n\n    \/\/ Trie is a Merkle Patricia Trie.\n    \/\/ The zero value is an empty trie with no database.\n    \/\/ Use New to create a trie that sits on top of a database.\n    \/\/\n    \/\/ Trie is not safe for concurrent use.\n    type Trie struct {\n        root         node\n        db           Database\n        originalRoot common.Hash\n    \n        \/\/ Cache generation values.\n        \/\/ cachegen increases by one with each commit operation.\n        \/\/ new nodes are tagged with the current generation and unloaded\n        \/\/ when their generation is older than than cachegen-cachelimit.\n        cachegen, cachelimit uint16\n    }\n\n\n###Trie\u6811\u7684\u63d2\u5165\uff0c\u67e5\u627e\u548c\u5220\u9664\nTrie\u6811\u7684\u521d\u59cb\u5316\u8c03\u7528New\u51fd\u6570\uff0c\u51fd\u6570\u63a5\u53d7\u4e00\u4e2ahash\u503c\u548c\u4e00\u4e2aDatabase\u53c2\u6570\uff0c\u5982\u679chash\u503c\u4e0d\u662f\u7a7a\u503c\u7684\u5316\uff0c\u5c31\u8bf4\u660e\u662f\u4ece\u6570\u636e\u5e93\u52a0\u8f7d\u4e00\u4e2a\u5df2\u7ecf\u5b58\u5728\u7684Trie\u6811\uff0c \u5c31\u8c03\u7528trei.resolveHash\u65b9\u6cd5\u6765\u52a0\u8f7d\u6574\u9897Trie\u6811\uff0c\u8fd9\u4e2a\u65b9\u6cd5\u540e\u7eed\u4f1a\u4ecb\u7ecd\u3002 \u5982\u679croot\u662f\u7a7a\uff0c\u90a3\u4e48\u5c31\u65b0\u5efa\u4e00\u9897Trie\u6811\u8fd4\u56de\u3002\n\n    func New(root common.Hash, db Database) (*Trie, error) {\n        trie := &Trie{db: db, originalRoot: root}\n        if (root != common.Hash{}) && root != emptyRoot {\n            if db == nil {\n                panic(\"trie.New: cannot use existing root without a database\")\n            }\n            rootnode, err := trie.resolveHash(root[:], nil)\n            if err != nil {\n                return nil, err\n            }\n            trie.root = rootnode\n        }\n        return trie, nil\n    }\n\nTrie\u6811\u7684\u63d2\u5165\uff0c\u8fd9\u662f\u4e00\u4e2a\u9012\u5f52\u8c03\u7528\u7684\u65b9\u6cd5\uff0c\u4ece\u6839\u8282\u70b9\u5f00\u59cb\uff0c\u4e00\u76f4\u5f80\u4e0b\u627e\uff0c\u76f4\u5230\u627e\u5230\u53ef\u4ee5\u63d2\u5165\u7684\u70b9\uff0c\u8fdb\u884c\u63d2\u5165\u64cd\u4f5c\u3002\u53c2\u6570node\u662f\u5f53\u524d\u63d2\u5165\u7684\u8282\u70b9\uff0c prefix\u662f\u5f53\u524d\u5df2\u7ecf\u5904\u7406\u5b8c\u7684\u90e8\u5206key\uff0c key\u662f\u8fd8\u6ca1\u6709\u5904\u7406\u73a9\u7684\u90e8\u5206key,  \u5b8c\u6574\u7684key = prefix + key\u3002 value\u662f\u9700\u8981\u63d2\u5165\u7684\u503c\u3002 \u8fd4\u56de\u503cbool\u662f\u64cd\u4f5c\u662f\u5426\u6539\u53d8\u4e86Trie\u6811(dirty)\uff0cnode\u662f\u63d2\u5165\u5b8c\u6210\u540e\u7684\u5b50\u6811\u7684\u6839\u8282\u70b9\uff0c error\u662f\u9519\u8bef\u4fe1\u606f\u3002\n\n- \u5982\u679c\u8282\u70b9\u7c7b\u578b\u662fnil(\u4e00\u9897\u5168\u65b0\u7684Trie\u6811\u7684\u8282\u70b9\u5c31\u662fnil\u7684),\u8fd9\u4e2a\u65f6\u5019\u6574\u9897\u6811\u662f\u7a7a\u7684\uff0c\u76f4\u63a5\u8fd4\u56deshortNode{key, value, t.newFlag()}\uff0c \u8fd9\u4e2a\u65f6\u5019\u6574\u9897\u6811\u7684\u8ddf\u5c31\u542b\u6709\u4e86\u4e00\u4e2ashortNode\u8282\u70b9\u3002 \n- \u5982\u679c\u5f53\u524d\u7684\u6839\u8282\u70b9\u7c7b\u578b\u662fshortNode(\u4e5f\u5c31\u662f\u53f6\u5b50\u8282\u70b9)\uff0c\u9996\u5148\u8ba1\u7b97\u516c\u5171\u524d\u7f00\uff0c\u5982\u679c\u516c\u5171\u524d\u7f00\u5c31\u7b49\u4e8ekey\uff0c\u90a3\u4e48\u8bf4\u660e\u8fd9\u4e24\u4e2akey\u662f\u4e00\u6837\u7684\uff0c\u5982\u679cvalue\u4e5f\u4e00\u6837\u7684(dirty == false)\uff0c\u90a3\u4e48\u8fd4\u56de\u9519\u8bef\u3002 \u5982\u679c\u6ca1\u6709\u9519\u8bef\u5c31\u66f4\u65b0shortNode\u7684\u503c\u7136\u540e\u8fd4\u56de\u3002\u5982\u679c\u516c\u5171\u524d\u7f00\u4e0d\u5b8c\u5168\u5339\u914d\uff0c\u90a3\u4e48\u5c31\u9700\u8981\u628a\u516c\u5171\u524d\u7f00\u63d0\u53d6\u51fa\u6765\u5f62\u6210\u4e00\u4e2a\u72ec\u7acb\u7684\u8282\u70b9(\u6269\u5c55\u8282\u70b9),\u6269\u5c55\u8282\u70b9\u540e\u9762\u8fde\u63a5\u4e00\u4e2abranch\u8282\u70b9\uff0cbranch\u8282\u70b9\u540e\u9762\u770b\u60c5\u51b5\u8fde\u63a5\u4e24\u4e2ashort\u8282\u70b9\u3002\u9996\u5148\u6784\u5efa\u4e00\u4e2abranch\u8282\u70b9(branch := &fullNode{flags: t.newFlag()}),\u7136\u540e\u518dbranch\u8282\u70b9\u7684Children\u4f4d\u7f6e\u8c03\u7528t.insert\u63d2\u5165\u5269\u4e0b\u7684\u4e24\u4e2ashort\u8282\u70b9\u3002\u8fd9\u91cc\u6709\u4e2a\u5c0f\u7ec6\u8282\uff0ckey\u7684\u7f16\u7801\u662fHEX encoding,\u800c\u4e14\u672b\u5c3e\u5e26\u4e86\u4e00\u4e2a\u7ec8\u7ed3\u7b26\u3002\u8003\u8651\u6211\u4eec\u7684\u6839\u8282\u70b9\u7684key\u662fabc0x16\uff0c\u6211\u4eec\u63d2\u5165\u7684\u8282\u70b9\u7684key\u662fab0x16\u3002\u4e0b\u9762\u7684branch.Children[key[matchlen]]\u624d\u53ef\u4ee5\u6b63\u5e38\u8fd0\u884c\uff0c0x16\u521a\u597d\u6307\u5411\u4e86branch\u8282\u70b9\u7684\u7b2c17\u4e2a\u5b69\u5b50\u3002\u5982\u679c\u5339\u914d\u7684\u957f\u5ea6\u662f0\uff0c\u90a3\u4e48\u76f4\u63a5\u8fd4\u56de\u8fd9\u4e2abranch\u8282\u70b9\uff0c\u5426\u5219\u8fd4\u56deshortNode\u8282\u70b9\u4f5c\u4e3a\u524d\u7f00\u8282\u70b9\u3002\n- \u5982\u679c\u5f53\u524d\u7684\u8282\u70b9\u662ffullNode(\u4e5f\u5c31\u662fbranch\u8282\u70b9)\uff0c\u90a3\u4e48\u76f4\u63a5\u5f80\u5bf9\u5e94\u7684\u5b69\u5b50\u8282\u70b9\u8c03\u7528insert\u65b9\u6cd5,\u7136\u540e\u628a\u5bf9\u5e94\u7684\u5b69\u5b50\u8282\u70b9\u53ea\u60f3\u65b0\u751f\u6210\u7684\u8282\u70b9\u3002\n- \u5982\u679c\u5f53\u524d\u8282\u70b9\u662fhashNode, hashNode\u7684\u610f\u601d\u662f\u5f53\u524d\u8282\u70b9\u8fd8\u6ca1\u6709\u52a0\u8f7d\u5230\u5185\u5b58\u91cc\u9762\u6765\uff0c\u8fd8\u662f\u5b58\u653e\u5728\u6570\u636e\u5e93\u91cc\u9762\uff0c\u90a3\u4e48\u9996\u5148\u8c03\u7528 t.resolveHash(n, prefix)\u6765\u52a0\u8f7d\u5230\u5185\u5b58\uff0c\u7136\u540e\u5bf9\u52a0\u8f7d\u51fa\u6765\u7684\u8282\u70b9\u8c03\u7528insert\u65b9\u6cd5\u6765\u8fdb\u884c\u63d2\u5165\u3002\n\n\n\u63d2\u5165\u4ee3\u7801\n\n    func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {\n        if len(key) == 0 {\n            if v, ok := n.(valueNode); ok {\n                return !bytes.Equal(v, value.(valueNode)), value, nil\n            }\n            return true, value, nil\n        }\n        switch n := n.(type) {\n        case *shortNode:\n            matchlen := prefixLen(key, n.Key)\n            \/\/ If the whole key matches, keep this short node as is\n            \/\/ and only update the value.\n            if matchlen == len(n.Key) {\n                dirty, nn, err := t.insert(n.Val, append(prefix, key[:matchlen]...), key[matchlen:], value)\n                if !dirty || err != nil {\n                    return false, n, err\n                }\n                return true, &shortNode{n.Key, nn, t.newFlag()}, nil\n            }\n            \/\/ Otherwise branch out at the index where they differ.\n            branch := &fullNode{flags: t.newFlag()}\n            var err error\n            _, branch.Children[n.Key[matchlen]], err = t.insert(nil, append(prefix, n.Key[:matchlen+1]...), n.Key[matchlen+1:], n.Val)\n            if err != nil {\n                return false, nil, err\n            }\n            _, branch.Children[key[matchlen]], err = t.insert(nil, append(prefix, key[:matchlen+1]...), key[matchlen+1:], value)\n            if err != nil {\n                return false, nil, err\n            }\n            \/\/ Replace this shortNode with the branch if it occurs at index 0.\n            if matchlen == 0 {\n                return true, branch, nil\n            }\n            \/\/ Otherwise, replace it with a short node leading up to the branch.\n            return true, &shortNode{key[:matchlen], branch, t.newFlag()}, nil\n    \n        case *fullNode:\n            dirty, nn, err := t.insert(n.Children[key[0]], append(prefix, key[0]), key[1:], value)\n            if !dirty || err != nil {\n                return false, n, err\n            }\n            n = n.copy()\n            n.flags = t.newFlag()\n            n.Children[key[0]] = nn\n            return true, n, nil\n    \n        case nil:\n            return true, &shortNode{key, value, t.newFlag()}, nil\n    \n        case hashNode:\n            \/\/ We've hit a part of the trie that isn't loaded yet. Load\n            \/\/ the node and insert into it. This leaves all child nodes on\n            \/\/ the path to the value in the trie.\n            rn, err := t.resolveHash(n, prefix)\n            if err != nil {\n                return false, nil, err\n            }\n            dirty, nn, err := t.insert(rn, prefix, key, value)\n            if !dirty || err != nil {\n                return false, rn, err\n            }\n            return true, nn, nil\n    \n        default:\n            panic(fmt.Sprintf(\"%T: invalid node: %v\", n, n))\n        }\n    }\n\n\nTrie\u6811\u7684Get\u65b9\u6cd5\uff0c\u57fa\u672c\u4e0a\u5c31\u662f\u5f88\u7b80\u5355\u7684\u904d\u5386Trie\u6811\uff0c\u6765\u83b7\u53d6Key\u7684\u4fe1\u606f\u3002\n\n\n    func (t *Trie) tryGet(origNode node, key []byte, pos int) (value []byte, newnode node, didResolve bool, err error) {\n        switch n := (origNode).(type) {\n        case nil:\n            return nil, nil, false, nil\n        case valueNode:\n            return n, n, false, nil\n        case *shortNode:\n            if len(key)-pos < len(n.Key) || !bytes.Equal(n.Key, key[pos:pos+len(n.Key)]) {\n                \/\/ key not found in trie\n                return nil, n, false, nil\n            }\n            value, newnode, didResolve, err = t.tryGet(n.Val, key, pos+len(n.Key))\n            if err == nil && didResolve {\n                n = n.copy()\n                n.Val = newnode\n                n.flags.gen = t.cachegen\n            }\n            return value, n, didResolve, err\n        case *fullNode:\n            value, newnode, didResolve, err = t.tryGet(n.Children[key[pos]], key, pos+1)\n            if err == nil && didResolve {\n                n = n.copy()\n                n.flags.gen = t.cachegen\n                n.Children[key[pos]] = newnode\n            }\n            return value, n, didResolve, err\n        case hashNode:\n            child, err := t.resolveHash(n, key[:pos])\n            if err != nil {\n                return nil, n, true, err\n            }\n            value, newnode, _, err := t.tryGet(child, key, pos)\n            return value, newnode, true, err\n        default:\n            panic(fmt.Sprintf(\"%T: invalid node: %v\", origNode, origNode))\n        }\n    }\n\nTrie\u6811\u7684Delete\u65b9\u6cd5\uff0c\u6682\u65f6\u4e0d\u4ecb\u7ecd\uff0c\u4ee3\u7801\u6839\u63d2\u5165\u6bd4\u8f83\u7c7b\u4f3c\n\n### Trie\u6811\u7684\u5e8f\u5217\u5316\u548c\u53cd\u5e8f\u5217\u5316\n\u5e8f\u5217\u5316\u4e3b\u8981\u662f\u6307\u628a\u5185\u5b58\u8868\u793a\u7684\u6570\u636e\u5b58\u653e\u5230\u6570\u636e\u5e93\u91cc\u9762\uff0c \u53cd\u5e8f\u5217\u5316\u662f\u6307\u628a\u6570\u636e\u5e93\u91cc\u9762\u7684Trie\u6570\u636e\u52a0\u8f7d\u6210\u5185\u5b58\u8868\u793a\u7684\u6570\u636e\u3002 \u5e8f\u5217\u5316\u7684\u76ee\u7684\u4e3b\u8981\u662f\u65b9\u4fbf\u5b58\u50a8\uff0c\u51cf\u5c11\u5b58\u50a8\u5927\u5c0f\u7b49\u3002 \u53cd\u5e8f\u5217\u5316\u7684\u76ee\u7684\u662f\u628a\u5b58\u50a8\u7684\u6570\u636e\u52a0\u8f7d\u5230\u5185\u5b58\uff0c\u65b9\u4fbfTrie\u6811\u7684\u63d2\u5165\uff0c\u67e5\u8be2\uff0c\u4fee\u6539\u7b49\u9700\u6c42\u3002\n\nTrie\u7684\u5e8f\u5217\u5316\u4e3b\u8981\u624d\u4f5c\u7528\u4e86\u524d\u9762\u4ecb\u7ecd\u7684Compat Encoding\u548c RLP\u7f16\u7801\u683c\u5f0f\u3002 \u5e8f\u5217\u5316\u7684\u7ed3\u6784\u5728\u9ec4\u76ae\u4e66\u91cc\u9762\u6709\u8be6\u7ec6\u7684\u4ecb\u7ecd\u3002\n\n![image](picture\/trie_8.png)\n![image](picture\/trie_9.png)\n![image](picture\/trie_10.png)\n\nTrie\u6811\u7684\u4f7f\u7528\u65b9\u6cd5\u5728trie_test.go\u91cc\u9762\u6709\u6bd4\u8f83\u8be6\u7ec6\u7684\u53c2\u8003\u3002 \u8fd9\u91cc\u6211\u5217\u51fa\u4e00\u4e2a\u7b80\u5355\u7684\u4f7f\u7528\u6d41\u7a0b\u3002\u9996\u5148\u521b\u5efa\u4e00\u4e2a\u7a7a\u7684Trie\u6811\uff0c\u7136\u540e\u63d2\u5165\u4e00\u4e9b\u6570\u636e\uff0c\u6700\u540e\u8c03\u7528trie.Commit()\u65b9\u6cd5\u8fdb\u884c\u5e8f\u5217\u5316\u5e76\u5f97\u5230\u4e00\u4e2ahash\u503c(root), \u4e5f\u5c31\u662f\u4e0a\u56fe\u4e2d\u7684KEC(c(J,0))\u6216\u8005\u662fTRIE(J)\u3002\n\n    func TestInsert(t *testing.T) {\n        trie := newEmpty()\n        updateString(trie, \"doe\", \"reindeer\")\n        updateString(trie, \"dog\", \"puppy\")\n        updateString(trie, \"do\", \"cat\")\n        root, err := trie.Commit()\n    }\n\n\u4e0b\u9762\u6211\u4eec\u6765\u5206\u6790\u4e0bCommit()\u7684\u4e3b\u8981\u6d41\u7a0b\u3002 \u7ecf\u8fc7\u4e00\u7cfb\u5217\u7684\u8c03\u7528\uff0c\u6700\u7ec8\u8c03\u7528\u4e86hasher.go\u7684hash\u65b9\u6cd5\u3002\n\n    func (t *Trie) Commit() (root common.Hash, err error) {\n        if t.db == nil {\n            panic(\"Commit called on trie with nil database\")\n        }\n        return t.CommitTo(t.db)\n    }\n    \/\/ CommitTo writes all nodes to the given database.\n    \/\/ Nodes are stored with their sha3 hash as the key.\n    \/\/\n    \/\/ Committing flushes nodes from memory. Subsequent Get calls will\n    \/\/ load nodes from the trie's database. Calling code must ensure that\n    \/\/ the changes made to db are written back to the trie's attached\n    \/\/ database before using the trie.\n    func (t *Trie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {\n        hash, cached, err := t.hashRoot(db)\n        if err != nil {\n            return (common.Hash{}), err\n        }\n        t.root = cached\n        t.cachegen++\n        return common.BytesToHash(hash.(hashNode)), nil\n    }\n    \n    func (t *Trie) hashRoot(db DatabaseWriter) (node, node, error) {\n        if t.root == nil {\n            return hashNode(emptyRoot.Bytes()), nil, nil\n        }\n        h := newHasher(t.cachegen, t.cachelimit)\n        defer returnHasherToPool(h)\n        return h.hash(t.root, db, true)\n    }\n\n\n\u4e0b\u9762\u6211\u4eec\u7b80\u5355\u4ecb\u7ecd\u4e0bhash\u65b9\u6cd5\uff0chash\u65b9\u6cd5\u4e3b\u8981\u505a\u4e86\u4e24\u4e2a\u64cd\u4f5c\u3002 \u4e00\u4e2a\u662f\u4fdd\u7559\u539f\u6709\u7684\u6811\u5f62\u7ed3\u6784\uff0c\u5e76\u7528cache\u53d8\u91cf\u4e2d\uff0c \u53e6\u4e00\u4e2a\u662f\u8ba1\u7b97\u539f\u6709\u6811\u5f62\u7ed3\u6784\u7684hash\u5e76\u628ahash\u503c\u5b58\u653e\u5230cache\u53d8\u91cf\u4e2d\u4fdd\u5b58\u4e0b\u6765\u3002\n\n\u8ba1\u7b97\u539f\u6709hash\u503c\u7684\u4e3b\u8981\u6d41\u7a0b\u662f\u9996\u5148\u8c03\u7528h.hashChildren(n,db)\u628a\u6240\u6709\u7684\u5b50\u8282\u70b9\u7684hash\u503c\u6c42\u51fa\u6765\uff0c\u628a\u539f\u6709\u7684\u5b50\u8282\u70b9\u66ff\u6362\u6210\u5b50\u8282\u70b9\u7684hash\u503c\u3002 \u8fd9\u662f\u4e00\u4e2a\u9012\u5f52\u8c03\u7528\u7684\u8fc7\u7a0b\uff0c\u4f1a\u4ece\u6811\u53f6\u4f9d\u6b21\u5f80\u4e0a\u8ba1\u7b97\u76f4\u5230\u6811\u6839\u3002\u7136\u540e\u8c03\u7528store\u65b9\u6cd5\u8ba1\u7b97\u5f53\u524d\u8282\u70b9\u7684hash\u503c\uff0c\u5e76\u628a\u5f53\u524d\u8282\u70b9\u7684hash\u503c\u653e\u5165cache\u8282\u70b9\uff0c\u8bbe\u7f6edirty\u53c2\u6570\u4e3afalse(\u65b0\u521b\u5efa\u7684\u8282\u70b9\u7684dirty\u503c\u662f\u4e3atrue\u7684)\uff0c\u7136\u540e\u8fd4\u56de\u3002\n\n\u8fd4\u56de\u503c\u8bf4\u660e\uff0c cache\u53d8\u91cf\u5305\u542b\u4e86\u539f\u6709\u7684node\u8282\u70b9\uff0c\u5e76\u4e14\u5305\u542b\u4e86node\u8282\u70b9\u7684hash\u503c\u3002 hash\u53d8\u91cf\u8fd4\u56de\u4e86\u5f53\u524d\u8282\u70b9\u7684hash\u503c(\u8fd9\u4e2a\u503c\u5176\u5b9e\u662f\u6839\u636enode\u548cnode\u7684\u6240\u6709\u5b50\u8282\u70b9\u8ba1\u7b97\u51fa\u6765\u7684)\u3002\n\n\u6709\u4e00\u4e2a\u5c0f\u7ec6\u8282\uff1a \u6839\u8282\u70b9\u8c03\u7528hash\u51fd\u6570\u7684\u65f6\u5019\uff0c force\u53c2\u6570\u662f\u4e3atrue\u7684\uff0c\u5176\u4ed6\u7684\u5b50\u8282\u70b9\u8c03\u7528\u7684\u65f6\u5019force\u53c2\u6570\u662f\u4e3afalse\u7684\u3002 force\u53c2\u6570\u7684\u7528\u9014\u662f\u5f53||c(J,i)||<32\u7684\u65f6\u5019\u4e5f\u5bf9c(J,i)\u8fdb\u884chash\u8ba1\u7b97\uff0c\u8fd9\u6837\u4fdd\u8bc1\u65e0\u8bba\u5982\u4f55\u4e5f\u4f1a\u5bf9\u6839\u8282\u70b9\u8fdb\u884cHash\u8ba1\u7b97\u3002\n    \n    \/\/ hash collapses a node down into a hash node, also returning a copy of the\n    \/\/ original node initialized with the computed hash to replace the original one.\n    func (h *hasher) hash(n node, db DatabaseWriter, force bool) (node, node, error) {\n        \/\/ If we're not storing the node, just hashing, use available cached data\n        if hash, dirty := n.cache(); hash != nil {\n            if db == nil {\n                return hash, n, nil\n            }\n            if n.canUnload(h.cachegen, h.cachelimit) {\n                \/\/ Unload the node from cache. All of its subnodes will have a lower or equal\n                \/\/ cache generation number.\n                cacheUnloadCounter.Inc(1)\n                return hash, hash, nil\n            }\n            if !dirty {\n                return hash, n, nil\n            }\n        }\n        \/\/ Trie not processed yet or needs storage, walk the children\n        collapsed, cached, err := h.hashChildren(n, db)\n        if err != nil {\n            return hashNode{}, n, err\n        }\n        hashed, err := h.store(collapsed, db, force)\n        if err != nil {\n            return hashNode{}, n, err\n        }\n        \/\/ Cache the hash of the node for later reuse and remove\n        \/\/ the dirty flag in commit mode. It's fine to assign these values directly\n        \/\/ without copying the node first because hashChildren copies it.\n        cachedHash, _ := hashed.(hashNode)\n        switch cn := cached.(type) {\n        case *shortNode:\n            cn.flags.hash = cachedHash\n            if db != nil {\n                cn.flags.dirty = false\n            }\n        case *fullNode:\n            cn.flags.hash = cachedHash\n            if db != nil {\n                cn.flags.dirty = false\n            }\n        }\n        return hashed, cached, nil\n    }\n\nhashChildren\u65b9\u6cd5,\u8fd9\u4e2a\u65b9\u6cd5\u628a\u6240\u6709\u7684\u5b50\u8282\u70b9\u66ff\u6362\u6210\u4ed6\u4eec\u7684hash\uff0c\u53ef\u4ee5\u770b\u5230cache\u53d8\u91cf\u63a5\u7ba1\u4e86\u539f\u6765\u7684Trie\u6811\u7684\u5b8c\u6574\u7ed3\u6784\uff0ccollapsed\u53d8\u91cf\u628a\u5b50\u8282\u70b9\u66ff\u6362\u6210\u5b50\u8282\u70b9\u7684hash\u503c\u3002\n\n- \u5982\u679c\u5f53\u524d\u8282\u70b9\u662fshortNode, \u9996\u5148\u628acollapsed.Key\u4eceHex Encoding \u66ff\u6362\u6210 Compact Encoding, \u7136\u540e\u9012\u5f52\u8c03\u7528hash\u65b9\u6cd5\u8ba1\u7b97\u5b50\u8282\u70b9\u7684hash\u548ccache\uff0c\u8fd9\u6837\u5c31\u628a\u5b50\u8282\u70b9\u66ff\u6362\u6210\u4e86\u5b50\u8282\u70b9\u7684hash\u503c\uff0c\n- \u5982\u679c\u5f53\u524d\u8282\u70b9\u662ffullNode, \u90a3\u4e48\u904d\u5386\u6bcf\u4e2a\u5b50\u8282\u70b9\uff0c\u628a\u5b50\u8282\u70b9\u66ff\u6362\u6210\u5b50\u8282\u70b9\u7684Hash\u503c\uff0c\n- \u5426\u5219\u7684\u5316\u8fd9\u4e2a\u8282\u70b9\u6ca1\u6709children\u3002\u76f4\u63a5\u8fd4\u56de\u3002\n\n\u4ee3\u7801\n\n    \/\/ hashChildren replaces the children of a node with their hashes if the encoded\n    \/\/ size of the child is larger than a hash, returning the collapsed node as well\n    \/\/ as a replacement for the original node with the child hashes cached in.\n    func (h *hasher) hashChildren(original node, db DatabaseWriter) (node, node, error) {\n        var err error\n    \n        switch n := original.(type) {\n        case *shortNode:\n            \/\/ Hash the short node's child, caching the newly hashed subtree\n            collapsed, cached := n.copy(), n.copy()\n            collapsed.Key = hexToCompact(n.Key)\n            cached.Key = common.CopyBytes(n.Key)\n    \n            if _, ok := n.Val.(valueNode); !ok {\n                collapsed.Val, cached.Val, err = h.hash(n.Val, db, false)\n                if err != nil {\n                    return original, original, err\n                }\n            }\n            if collapsed.Val == nil {\n                collapsed.Val = valueNode(nil) \/\/ Ensure that nil children are encoded as empty strings.\n            }\n            return collapsed, cached, nil\n    \n        case *fullNode:\n            \/\/ Hash the full node's children, caching the newly hashed subtrees\n            collapsed, cached := n.copy(), n.copy()\n    \n            for i := 0; i < 16; i++ {\n                if n.Children[i] != nil {\n                    collapsed.Children[i], cached.Children[i], err = h.hash(n.Children[i], db, false)\n                    if err != nil {\n                        return original, original, err\n                    }\n                } else {\n                    collapsed.Children[i] = valueNode(nil) \/\/ Ensure that nil children are encoded as empty strings.\n                }\n            }\n            cached.Children[16] = n.Children[16]\n            if collapsed.Children[16] == nil {\n                collapsed.Children[16] = valueNode(nil)\n            }\n            return collapsed, cached, nil\n    \n        default:\n            \/\/ Value and hash nodes don't have children so they're left as were\n            return n, original, nil\n        }\n    }\n\n\nstore\u65b9\u6cd5\uff0c\u5982\u679c\u4e00\u4e2anode\u7684\u6240\u6709\u5b50\u8282\u70b9\u90fd\u66ff\u6362\u6210\u4e86\u5b50\u8282\u70b9\u7684hash\u503c\uff0c\u90a3\u4e48\u76f4\u63a5\u8c03\u7528rlp.Encode\u65b9\u6cd5\u5bf9\u8fd9\u4e2a\u8282\u70b9\u8fdb\u884c\u7f16\u7801\uff0c\u5982\u679c\u7f16\u7801\u540e\u7684\u503c\u5c0f\u4e8e32\uff0c\u5e76\u4e14\u8fd9\u4e2a\u8282\u70b9\u4e0d\u662f\u6839\u8282\u70b9\uff0c\u90a3\u4e48\u5c31\u628a\u4ed6\u4eec\u76f4\u63a5\u5b58\u50a8\u5728\u4ed6\u4eec\u7684\u7236\u8282\u70b9\u91cc\u9762\uff0c\u5426\u8005\u8c03\u7528h.sha.Write\u65b9\u6cd5\u8fdb\u884chash\u8ba1\u7b97\uff0c \u7136\u540e\u628ahash\u503c\u548c\u7f16\u7801\u540e\u7684\u6570\u636e\u5b58\u50a8\u5230\u6570\u636e\u5e93\u91cc\u9762\uff0c\u7136\u540e\u8fd4\u56dehash\u503c\u3002\n\n\u53ef\u4ee5\u770b\u5230\u6bcf\u4e2a\u503c\u5927\u4e8e32\u7684\u8282\u70b9\u7684\u503c\u548chash\u90fd\u5b58\u50a8\u5230\u4e86\u6570\u636e\u5e93\u91cc\u9762\uff0c\n\n    func (h *hasher) store(n node, db DatabaseWriter, force bool) (node, error) {\n        \/\/ Don't store hashes or empty nodes.\n        if _, isHash := n.(hashNode); n == nil || isHash {\n            return n, nil\n        }\n        \/\/ Generate the RLP encoding of the node\n        h.tmp.Reset()\n        if err := rlp.Encode(h.tmp, n); err != nil {\n            panic(\"encode error: \" + err.Error())\n        }\n    \n        if h.tmp.Len() < 32 && !force {\n            return n, nil \/\/ Nodes smaller than 32 bytes are stored inside their parent\n        }\n        \/\/ Larger nodes are replaced by their hash and stored in the database.\n        hash, _ := n.cache()\n        if hash == nil {\n            h.sha.Reset()\n            h.sha.Write(h.tmp.Bytes())\n            hash = hashNode(h.sha.Sum(nil))\n        }\n        if db != nil {\n            return hash, db.Put(hash, h.tmp.Bytes())\n        }\n        return hash, nil\n    }\n\n\nTrie\u7684\u53cd\u5e8f\u5217\u5316\u8fc7\u7a0b\u3002\u8fd8\u8bb0\u5f97\u4e4b\u524d\u521b\u5efaTrie\u6811\u7684\u6d41\u7a0b\u4e48\u3002 \u5982\u679c\u53c2\u6570root\u7684hash\u503c\u4e0d\u4e3a\u7a7a\uff0c\u90a3\u4e48\u5c31\u4f1a\u8c03\u7528rootnode, err := trie.resolveHash(root[:], nil) \u65b9\u6cd5\u6765\u5f97\u5230rootnode\u8282\u70b9\u3002 \u9996\u5148\u4ece\u6570\u636e\u5e93\u91cc\u9762\u901a\u8fc7hash\u503c\u83b7\u53d6\u8282\u70b9\u7684RLP\u7f16\u7801\u540e\u7684\u5185\u5bb9\u3002 \u7136\u540e\u8c03\u7528decodeNode\u6765\u89e3\u6790\u5185\u5bb9\u3002\n\n    func (t *Trie) resolveHash(n hashNode, prefix []byte) (node, error) {\n        cacheMissCounter.Inc(1)\n    \n        enc, err := t.db.Get(n)\n        if err != nil || enc == nil {\n            return nil, &MissingNodeError{NodeHash: common.BytesToHash(n), Path: prefix}\n        }\n        dec := mustDecodeNode(n, enc, t.cachegen)\n        return dec, nil\n    }\n    func mustDecodeNode(hash, buf []byte, cachegen uint16) node {\n        n, err := decodeNode(hash, buf, cachegen)\n        if err != nil {\n            panic(fmt.Sprintf(\"node %x: %v\", hash, err))\n        }\n        return n\n    }\n\ndecodeNode\u65b9\u6cd5\uff0c\u8fd9\u4e2a\u65b9\u6cd5\u6839\u636erlp\u7684list\u7684\u957f\u5ea6\u6765\u5224\u65ad\u8fd9\u4e2a\u7f16\u7801\u5230\u5e95\u5c5e\u4e8e\u4ec0\u4e48\u8282\u70b9\uff0c\u5982\u679c\u662f2\u4e2a\u5b57\u6bb5\u90a3\u4e48\u5c31\u662fshortNode\u8282\u70b9\uff0c\u5982\u679c\u662f17\u4e2a\u5b57\u6bb5\uff0c\u90a3\u4e48\u5c31\u662ffullNode\uff0c\u7136\u540e\u5206\u522b\u8c03\u7528\u5404\u81ea\u7684\u89e3\u6790\u51fd\u6570\u3002\n\n    \/\/ decodeNode parses the RLP encoding of a trie node.\n    func decodeNode(hash, buf []byte, cachegen uint16) (node, error) {\n        if len(buf) == 0 {\n            return nil, io.ErrUnexpectedEOF\n        }\n        elems, _, err := rlp.SplitList(buf)\n        if err != nil {\n            return nil, fmt.Errorf(\"decode error: %v\", err)\n        }\n        switch c, _ := rlp.CountValues(elems); c {\n        case 2:\n            n, err := decodeShort(hash, buf, elems, cachegen)\n            return n, wrapError(err, \"short\")\n        case 17:\n            n, err := decodeFull(hash, buf, elems, cachegen)\n            return n, wrapError(err, \"full\")\n        default:\n            return nil, fmt.Errorf(\"invalid number of list elements: %v\", c)\n        }\n    }\n\ndecodeShort\u65b9\u6cd5\uff0c\u901a\u8fc7key\u662f\u5426\u6709\u7ec8\u7ed3\u7b26\u53f7\u6765\u5224\u65ad\u5230\u5e95\u662f\u53f6\u5b50\u8282\u70b9\u8fd8\u662f\u4e2d\u95f4\u8282\u70b9\u3002\u5982\u679c\u6709\u7ec8\u7ed3\u7b26\u90a3\u4e48\u5c31\u662f\u53f6\u5b50\u7ed3\u70b9\uff0c\u901a\u8fc7SplitString\u65b9\u6cd5\u89e3\u6790\u51fa\u6765val\u7136\u540e\u751f\u6210\u4e00\u4e2ashortNode\u3002 \u4e0d\u8fc7\u6ca1\u6709\u7ec8\u7ed3\u7b26\uff0c\u90a3\u4e48\u8bf4\u660e\u662f\u6269\u5c55\u8282\u70b9\uff0c \u901a\u8fc7decodeRef\u6765\u89e3\u6790\u5269\u4e0b\u7684\u8282\u70b9\uff0c\u7136\u540e\u751f\u6210\u4e00\u4e2ashortNode\u3002\n\n    func decodeShort(hash, buf, elems []byte, cachegen uint16) (node, error) {\n        kbuf, rest, err := rlp.SplitString(elems)\n        if err != nil {\n            return nil, err\n        }\n        flag := nodeFlag{hash: hash, gen: cachegen}\n        key := compactToHex(kbuf)\n        if hasTerm(key) {\n            \/\/ value node\n            val, _, err := rlp.SplitString(rest)\n            if err != nil {\n                return nil, fmt.Errorf(\"invalid value node: %v\", err)\n            }\n            return &shortNode{key, append(valueNode{}, val...), flag}, nil\n        }\n        r, _, err := decodeRef(rest, cachegen)\n        if err != nil {\n            return nil, wrapError(err, \"val\")\n        }\n        return &shortNode{key, r, flag}, nil\n    }\n\ndecodeRef\u65b9\u6cd5\u6839\u636e\u6570\u636e\u7c7b\u578b\u8fdb\u884c\u89e3\u6790\uff0c\u5982\u679c\u7c7b\u578b\u662flist\uff0c\u90a3\u4e48\u6709\u53ef\u80fd\u662f\u5185\u5bb9<32\u7684\u503c\uff0c\u90a3\u4e48\u8c03\u7528decodeNode\u8fdb\u884c\u89e3\u6790\u3002 \u5982\u679c\u662f\u7a7a\u8282\u70b9\uff0c\u90a3\u4e48\u8fd4\u56de\u7a7a\uff0c\u5982\u679c\u662fhash\u503c\uff0c\u90a3\u4e48\u6784\u9020\u4e00\u4e2ahashNode\u8fdb\u884c\u8fd4\u56de\uff0c\u6ce8\u610f\u7684\u662f\u8fd9\u91cc\u6ca1\u6709\u7ee7\u7eed\u8fdb\u884c\u89e3\u6790\uff0c\u5982\u679c\u9700\u8981\u7ee7\u7eed\u89e3\u6790\u8fd9\u4e2ahashNode\uff0c\u90a3\u4e48\u9700\u8981\u7ee7\u7eed\u8c03\u7528resolveHash\u65b9\u6cd5\u3002 \u5230\u8fd9\u91ccdecodeShort\u65b9\u6cd5\u5c31\u8c03\u7528\u5b8c\u6210\u4e86\u3002\n\n    func decodeRef(buf []byte, cachegen uint16) (node, []byte, error) {\n        kind, val, rest, err := rlp.Split(buf)\n        if err != nil {\n            return nil, buf, err\n        }\n        switch {\n        case kind == rlp.List:\n            \/\/ 'embedded' node reference. The encoding must be smaller\n            \/\/ than a hash in order to be valid.\n            if size := len(buf) - len(rest); size > hashLen {\n                err := fmt.Errorf(\"oversized embedded node (size is %d bytes, want size < %d)\", size, hashLen)\n                return nil, buf, err\n            }\n            n, err := decodeNode(nil, buf, cachegen)\n            return n, rest, err\n        case kind == rlp.String && len(val) == 0:\n            \/\/ empty node\n            return nil, rest, nil\n        case kind == rlp.String && len(val) == 32:\n            return append(hashNode{}, val...), rest, nil\n        default:\n            return nil, nil, fmt.Errorf(\"invalid RLP string size %d (want 0 or 32)\", len(val))\n        }\n    }\n\ndecodeFull\u65b9\u6cd5\u3002\u6839decodeShort\u65b9\u6cd5\u7684\u6d41\u7a0b\u5dee\u4e0d\u591a\u3002\n\n    \n    func decodeFull(hash, buf, elems []byte, cachegen uint16) (*fullNode, error) {\n        n := &fullNode{flags: nodeFlag{hash: hash, gen: cachegen}}\n        for i := 0; i < 16; i++ {\n            cld, rest, err := decodeRef(elems, cachegen)\n            if err != nil {\n                return n, wrapError(err, fmt.Sprintf(\"[%d]\", i))\n            }\n            n.Children[i], elems = cld, rest\n        }\n        val, _, err := rlp.SplitString(elems)\n        if err != nil {\n            return n, err\n        }\n        if len(val) > 0 {\n            n.Children[16] = append(valueNode{}, val...)\n        }\n        return n, nil\n    }\n\n\n### Trie\u6811\u7684cache\u7ba1\u7406\nTrie\u6811\u7684cache\u7ba1\u7406\u3002 \u8fd8\u8bb0\u5f97Trie\u6811\u7684\u7ed3\u6784\u91cc\u9762\u6709\u4e24\u4e2a\u53c2\u6570\uff0c \u4e00\u4e2a\u662fcachegen,\u4e00\u4e2a\u662fcachelimit\u3002\u8fd9\u4e24\u4e2a\u53c2\u6570\u5c31\u662fcache\u63a7\u5236\u7684\u53c2\u6570\u3002 Trie\u6811\u6bcf\u4e00\u6b21\u8c03\u7528Commit\u65b9\u6cd5\uff0c\u4f1a\u5bfc\u81f4\u5f53\u524d\u7684cachegen\u589e\u52a01\u3002\n    \n    func (t *Trie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {\n        hash, cached, err := t.hashRoot(db)\n        if err != nil {\n            return (common.Hash{}), err\n        }\n        t.root = cached\n        t.cachegen++\n        return common.BytesToHash(hash.(hashNode)), nil\n    }\n\n\u7136\u540e\u5728Trie\u6811\u63d2\u5165\u7684\u65f6\u5019\uff0c\u4f1a\u628a\u5f53\u524d\u7684cachegen\u5b58\u653e\u5230\u8282\u70b9\u4e2d\u3002\n\n    func (t *Trie) insert(n node, prefix, key []byte, value node) (bool, node, error) {\n                ....\n                return true, &shortNode{n.Key, nn, t.newFlag()}, nil\n            }\n\n    \/\/ newFlag returns the cache flag value for a newly created node.\n    func (t *Trie) newFlag() nodeFlag {\n        return nodeFlag{dirty: true, gen: t.cachegen}\n    }\n\n\u5982\u679c trie.cachegen - node.cachegen > cachelimit\uff0c\u5c31\u53ef\u4ee5\u628a\u8282\u70b9\u4ece\u5185\u5b58\u91cc\u9762\u5378\u8f7d\u6389\u3002 \u4e5f\u5c31\u662f\u8bf4\u8282\u70b9\u7ecf\u8fc7\u51e0\u6b21Commit\uff0c\u90fd\u6ca1\u6709\u4fee\u6539\uff0c\u90a3\u4e48\u5c31\u628a\u8282\u70b9\u4ece\u5185\u5b58\u91cc\u9762\u5378\u8f7d\uff0c\u4ee5\u4fbf\u8282\u7ea6\u5185\u5b58\u7ed9\u5176\u4ed6\u8282\u70b9\u4f7f\u7528\u3002\n\n\u5378\u8f7d\u8fc7\u7a0b\u5728\u6211\u4eec\u7684 hasher.hash\u65b9\u6cd5\u4e2d\uff0c \u8fd9\u4e2a\u65b9\u6cd5\u662f\u5728commit\u7684\u65f6\u5019\u8c03\u7528\u3002\u5982\u679c\u65b9\u6cd5\u7684canUnload\u65b9\u6cd5\u8c03\u7528\u8fd4\u56de\u771f\uff0c\u90a3\u4e48\u5c31\u5378\u8f7d\u8282\u70b9\uff0c\u89c2\u5bdf\u4ed6\u7684\u8fd4\u56de\u503c\uff0c\u53ea\u8fd4\u56de\u4e86hash\u8282\u70b9\uff0c\u800c\u6ca1\u6709\u8fd4\u56denode\u8282\u70b9\uff0c\u8fd9\u6837\u8282\u70b9\u5c31\u6ca1\u6709\u5f15\u7528\uff0c\u4e0d\u4e45\u5c31\u4f1a\u88abgc\u6e05\u9664\u6389\u3002 \u8282\u70b9\u88ab\u5378\u8f7d\u6389\u4e4b\u540e\uff0c\u4f1a\u7528\u4e00\u4e2ahashNode\u8282\u70b9\u6765\u8868\u793a\u8fd9\u4e2a\u8282\u70b9\u4ee5\u53ca\u5176\u5b50\u8282\u70b9\u3002 \u5982\u679c\u540e\u7eed\u9700\u8981\u4f7f\u7528\uff0c\u53ef\u4ee5\u901a\u8fc7\u65b9\u6cd5\u628a\u8fd9\u4e2a\u8282\u70b9\u52a0\u8f7d\u5230\u5185\u5b58\u91cc\u9762\u6765\u3002\n\n    func (h *hasher) hash(n node, db DatabaseWriter, force bool) (node, node, error) {\n        if hash, dirty := n.cache(); hash != nil {\n            if db == nil {\n                return hash, n, nil\n            }\n            if n.canUnload(h.cachegen, h.cachelimit) {\n                \/\/ Unload the node from cache. All of its subnodes will have a lower or equal\n                \/\/ cache generation number.\n                cacheUnloadCounter.Inc(1)\n                return hash, hash, nil\n            }\n            if !dirty {\n                return hash, n, nil\n            }\n        }\n\ncanUnload\u65b9\u6cd5\u662f\u4e00\u4e2a\u63a5\u53e3\uff0c\u4e0d\u540c\u7684node\u8c03\u7528\u4e0d\u540c\u7684\u65b9\u6cd5\u3002\n\n    \/\/ canUnload tells whether a node can be unloaded.\n    func (n *nodeFlag) canUnload(cachegen, cachelimit uint16) bool {\n        return !n.dirty && cachegen-n.gen >= cachelimit\n    }\n    \n    func (n *fullNode) canUnload(gen, limit uint16) bool  { return n.flags.canUnload(gen, limit) }\n    func (n *shortNode) canUnload(gen, limit uint16) bool { return n.flags.canUnload(gen, limit) }\n    func (n hashNode) canUnload(uint16, uint16) bool      { return false }\n    func (n valueNode) canUnload(uint16, uint16) bool     { return false }\n    \n    func (n *fullNode) cache() (hashNode, bool)  { return n.flags.hash, n.flags.dirty }\n    func (n *shortNode) cache() (hashNode, bool) { return n.flags.hash, n.flags.dirty }\n    func (n hashNode) cache() (hashNode, bool)   { return nil, true }\n    func (n valueNode) cache() (hashNode, bool)  { return nil, true }\n\n### proof.go Trie\u6811\u7684\u9ed8\u514b\u5c14\u8bc1\u660e\n\u4e3b\u8981\u63d0\u4f9b\u4e24\u4e2a\u65b9\u6cd5\uff0cProve\u65b9\u6cd5\u83b7\u53d6\u6307\u5b9aKey\u7684proof\u8bc1\u660e\uff0c proof\u8bc1\u660e\u662f\u4ece\u6839\u8282\u70b9\u5230\u53f6\u5b50\u8282\u70b9\u7684\u6240\u6709\u8282\u70b9\u7684hash\u503c\u5217\u8868\u3002 VerifyProof\u65b9\u6cd5\uff0c\u63a5\u53d7\u4e00\u4e2aroothash\u503c\u548cproof\u8bc1\u660e\u548ckey\u6765\u9a8c\u8bc1key\u662f\u5426\u5b58\u5728\u3002\n\nProve\u65b9\u6cd5\uff0c\u4ece\u6839\u8282\u70b9\u5f00\u59cb\u3002\u628a\u7ecf\u8fc7\u7684\u8282\u70b9\u7684hash\u503c\u4e00\u4e2a\u4e00\u4e2a\u5b58\u5165\u5230list\u4e2d\u3002\u7136\u540e\u8fd4\u56de\u3002\n    \n    \/\/ Prove constructs a merkle proof for key. The result contains all\n    \/\/ encoded nodes on the path to the value at key. The value itself is\n    \/\/ also included in the last node and can be retrieved by verifying\n    \/\/ the proof.\n    \/\/\n    \/\/ If the trie does not contain a value for key, the returned proof\n    \/\/ contains all nodes of the longest existing prefix of the key\n    \/\/ (at least the root node), ending with the node that proves the\n    \/\/ absence of the key.\n    func (t *Trie) Prove(key []byte) []rlp.RawValue {\n        \/\/ Collect all nodes on the path to key.\n        key = keybytesToHex(key)\n        nodes := []node{}\n        tn := t.root\n        for len(key) > 0 && tn != nil {\n            switch n := tn.(type) {\n            case *shortNode:\n                if len(key) < len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {\n                    \/\/ The trie doesn't contain the key.\n                    tn = nil\n                } else {\n                    tn = n.Val\n                    key = key[len(n.Key):]\n                }\n                nodes = append(nodes, n)\n            case *fullNode:\n                tn = n.Children[key[0]]\n                key = key[1:]\n                nodes = append(nodes, n)\n            case hashNode:\n                var err error\n                tn, err = t.resolveHash(n, nil)\n                if err != nil {\n                    log.Error(fmt.Sprintf(\"Unhandled trie error: %v\", err))\n                    return nil\n                }\n            default:\n                panic(fmt.Sprintf(\"%T: invalid node: %v\", tn, tn))\n            }\n        }\n        hasher := newHasher(0, 0)\n        proof := make([]rlp.RawValue, 0, len(nodes))\n        for i, n := range nodes {\n            \/\/ Don't bother checking for errors here since hasher panics\n            \/\/ if encoding doesn't work and we're not writing to any database.\n            n, _, _ = hasher.hashChildren(n, nil)\n            hn, _ := hasher.store(n, nil, false)\n            if _, ok := hn.(hashNode); ok || i == 0 {\n                \/\/ If the node's database encoding is a hash (or is the\n                \/\/ root node), it becomes a proof element.\n                enc, _ := rlp.EncodeToBytes(n)\n                proof = append(proof, enc)\n            }\n        }\n        return proof\n    }\n\nVerifyProof\u65b9\u6cd5\uff0c\u63a5\u6536\u4e00\u4e2arootHash\u53c2\u6570\uff0ckey\u53c2\u6570\uff0c\u548cproof\u6570\u7ec4\uff0c \u6765\u4e00\u4e2a\u4e00\u4e2a\u9a8c\u8bc1\u662f\u5426\u80fd\u591f\u548c\u6570\u636e\u5e93\u91cc\u9762\u7684\u80fd\u591f\u5bf9\u5e94\u4e0a\u3002\n\n    \/\/ VerifyProof checks merkle proofs. The given proof must contain the\n    \/\/ value for key in a trie with the given root hash. VerifyProof\n    \/\/ returns an error if the proof contains invalid trie nodes or the\n    \/\/ wrong value.\n    func VerifyProof(rootHash common.Hash, key []byte, proof []rlp.RawValue) (value []byte, err error) {\n        key = keybytesToHex(key)\n        sha := sha3.NewKeccak256()\n        wantHash := rootHash.Bytes()\n        for i, buf := range proof {\n            sha.Reset()\n            sha.Write(buf)\n            if !bytes.Equal(sha.Sum(nil), wantHash) {\n                return nil, fmt.Errorf(\"bad proof node %d: hash mismatch\", i)\n            }\n            n, err := decodeNode(wantHash, buf, 0)\n            if err != nil {\n                return nil, fmt.Errorf(\"bad proof node %d: %v\", i, err)\n            }\n            keyrest, cld := get(n, key)\n            switch cld := cld.(type) {\n            case nil:\n                if i != len(proof)-1 {\n                    return nil, fmt.Errorf(\"key mismatch at proof node %d\", i)\n                } else {\n                    \/\/ The trie doesn't contain the key.\n                    return nil, nil\n                }\n            case hashNode:\n                key = keyrest\n                wantHash = cld\n            case valueNode:\n                if i != len(proof)-1 {\n                    return nil, errors.New(\"additional nodes at end of proof\")\n                }\n                return cld, nil\n            }\n        }\n        return nil, errors.New(\"unexpected end of proof\")\n    }\n    \n    func get(tn node, key []byte) ([]byte, node) {\n        for {\n            switch n := tn.(type) {\n            case *shortNode:\n                if len(key) < len(n.Key) || !bytes.Equal(n.Key, key[:len(n.Key)]) {\n                    return nil, nil\n                }\n                tn = n.Val\n                key = key[len(n.Key):]\n            case *fullNode:\n                tn = n.Children[key[0]]\n                key = key[1:]\n            case hashNode:\n                return key, n\n            case nil:\n                return key, nil\n            case valueNode:\n                return nil, n\n            default:\n                panic(fmt.Sprintf(\"%T: invalid node: %v\", tn, tn))\n            }\n        }\n    }\n\n\n### security_trie.go \u52a0\u5bc6\u7684Trie\n\u4e3a\u4e86\u907f\u514d\u523b\u610f\u4f7f\u7528\u5f88\u957f\u7684key\u5bfc\u81f4\u8bbf\u95ee\u65f6\u95f4\u7684\u589e\u52a0\uff0c security_trie\u5305\u88c5\u4e86\u4e00\u4e0btrie\u6811\uff0c \u6240\u6709\u7684key\u90fd\u8f6c\u6362\u6210keccak256\u7b97\u6cd5\u8ba1\u7b97\u7684hash\u503c\u3002\u540c\u65f6\u5728\u6570\u636e\u5e93\u91cc\u9762\u5b58\u50a8hash\u503c\u5bf9\u5e94\u7684\u539f\u59cb\u7684key\u3002\n\n    type SecureTrie struct {\n        trie             Trie    \/\/\u539f\u59cb\u7684Trie\u6811\n        hashKeyBuf       [secureKeyLength]byte   \/\/\u8ba1\u7b97hash\u503c\u7684buf\n        secKeyBuf        [200]byte               \/\/hash\u503c\u5bf9\u5e94\u7684key\u5b58\u50a8\u7684\u65f6\u5019\u7684\u6570\u636e\u5e93\u524d\u7f00\n        secKeyCache      map[string][]byte      \/\/\u8bb0\u5f55hash\u503c\u548c\u5bf9\u5e94\u7684key\u7684\u6620\u5c04\n        secKeyCacheOwner *SecureTrie \/\/ Pointer to self, replace the key cache on mismatch\n    }\n\n    func NewSecure(root common.Hash, db Database, cachelimit uint16) (*SecureTrie, error) {\n        if db == nil {\n            panic(\"NewSecure called with nil database\")\n        }\n        trie, err := New(root, db)\n        if err != nil {\n            return nil, err\n        }\n        trie.SetCacheLimit(cachelimit)\n        return &SecureTrie{trie: *trie}, nil\n    }\n    \n    \/\/ Get returns the value for key stored in the trie.\n    \/\/ The value bytes must not be modified by the caller.\n    func (t *SecureTrie) Get(key []byte) []byte {\n        res, err := t.TryGet(key)\n        if err != nil {\n            log.Error(fmt.Sprintf(\"Unhandled trie error: %v\", err))\n        }\n        return res\n    }\n    \n    \/\/ TryGet returns the value for key stored in the trie.\n    \/\/ The value bytes must not be modified by the caller.\n    \/\/ If a node was not found in the database, a MissingNodeError is returned.\n    func (t *SecureTrie) TryGet(key []byte) ([]byte, error) {\n        return t.trie.TryGet(t.hashKey(key))\n    }\n    func (t *SecureTrie) CommitTo(db DatabaseWriter) (root common.Hash, err error) {\n        if len(t.getSecKeyCache()) > 0 {\n            for hk, key := range t.secKeyCache {\n                if err := db.Put(t.secKey([]byte(hk)), key); err != nil {\n                    return common.Hash{}, err\n                }\n            }\n            t.secKeyCache = make(map[string][]byte)\n        }\n        return t.trie.CommitTo(db)\n    }\n\n   "},
+        "summary":[{"id":1092367,"pid":0,"name":"default.md","title":"\u7a7a\u767d\u76ee\u5f55","is_probation":0,"ref":"default.md","path":"1092367","index":0},{"id":1092368,"pid":0,"name":"\u7b2c\u4e00\u5f20.md","title":"\u7b2c\u4e00\u5f20","is_probation":0,"ref":"\u7b2c\u4e00\u5f20.md","path":"1092368","index":1,"articles":[{"id":1092369,"pid":1092368,"name":"\u7b2c\u4e8c\u8282.md","title":"\u7b2c\u4e8c\u8282","is_probation":0,"ref":"\u7b2c\u4e8c\u8282.md","path":"1092369","index":2}]},{"id":1092370,"pid":0,"name":"\u7b2c\u4e8c\u7ae0.md","title":"\u7b2c\u4e8c\u7ae0","is_probation":0,"ref":"\u7b2c\u4e8c\u7ae0.md","path":"1092370","index":3},{"id":1092371,"pid":0,"name":"\u7b2c\u4e00\u8282.md","title":"\u7b2c\u4e00\u8282","is_probation":0,"ref":"\u7b2c\u4e00\u8282.md","path":"1092371","index":4}]
+    }
+</script>
+<script type="text/javascript" src="https://static.kancloud.cn/asset/reader.js?version=8b1df885c32740a2440d"></script>
+<script type="text/javascript">
+    kancloud.bootstrap();
+</script>
+<!-- Google Analytics -->
+<script>
+    window.ga = window.ga || function () {
+        (ga.q = ga.q || []).push(arguments)
+    };
+    ga.l      = +new Date;
+    ga('create', 'UA-85687835-1', 'auto', 'web');
+    ga('set', 'transport', 'beacon');
+
+    ga('web.send', 'pageview', {
+        dimension1:427613
+    });
+    window.sendPageView = function (page, title) {
+        ga('web.set', 'page', page);
+        ga('web.set', 'title', title);
+        ga('web.send', 'pageview', {
+            dimension1: 427613
+        });
+    }
+</script>
+<script async src='https://www.google-analytics.com/analytics.js'></script>
+<!-- End Google Analytics -->
+</body>
+</html>
